@@ -7,14 +7,15 @@ import json
 import aiofiles
 import datetime
 
-from modules import error
-from modules import check
+from modules import error, check
+from modules.db import DB
 
 
 
 class Report(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
+    self.db = DB()
     self.user_cooldowns = {}
     self.ctx_menu = app_commands.ContextMenu(
       name="!【サーバー管理者に報告】",
@@ -26,27 +27,32 @@ class Report(commands.Cog):
     self.bot.tree.remove_command(self.ctx_menu.name, type=self.ctx_menu.type)
 
   async def report(self, interaction:discord.Interaction, message:discord.Message):
-    # jsonファイルがなかった場合 -> return
-    path = f"data/report/guilds/{interaction.guild.id}.json"
-    if not os.path.exists(path):
-      embed=await error.generate(code="3-4-01")
-      await interaction.response.send_message(embed=embed, ephemeral=True)
+    guild_id = interaction.guild_id
+    if not guild_id:
       return
 
-    # report送信チャンネルがなかった場合 -> return
-    async with aiofiles.open(path, encoding='utf-8', mode="r") as f:
-      contents = await f.read()
-    report_dict = json.loads(contents)
-
-    if not report_dict.get("report_send_channel"):
-      embed=await error.generate(code="3-4-02")
-      await interaction.response.send_message(embed=embed, ephemeral=True)
+    channel_id = interaction.channel_id
+    if not channel_id:
       return
 
-    # guild_block
-    embed = await check.is_guild_block(bot=self.bot, guild=interaction.guild, user_id=interaction.user.id)
-    if embed:
-      await interaction.response.send_message(embed=embed, ephemeral=True)
+    guild_data = await self.db.get_guild_settings(guild_id)
+    if not guild_data:
+      return
+
+    thread_data = await self.db.get_thread(channel_id)
+    if not thread_data:
+      return
+
+    is_guild_blocked = await self.db.toggle_guild_block(guild_id, interaction.user.id)
+    if is_guild_blocked:
+      return
+
+    report_channel_id = guild_data["report_channel_id"]
+    if not report_channel_id:
+      return
+
+    is_thread_blocked = await self.db.toggle_thread_block(report_channel_id)
+    if is_thread_blocked:
       return
 
     # cooldown
@@ -82,9 +88,16 @@ class ReportButton(discord.ui.View):
     self.button_0.disabled = True
     self.button_1.disabled = True
 
-    if interaction.data['custom_id'] == "public_report":
+    if not interaction.data:
+      return
+
+    custom_id = interaction.data.get("custom_id")
+    if not custom_id:
+      return
+
+    if custom_id == "public_report":
       await self.do_report(interaction, self.message, interaction.user)
-    elif interaction.data['custom_id'] == "private_report":
+    elif custom_id == "private_report":
       # DMにテストメッセージを送信する
       try:
         await interaction.user.send("テストメッセージ", silent=True, delete_after=0.1)
@@ -95,7 +108,7 @@ class ReportButton(discord.ui.View):
       await self.do_report(interaction, self.message, None)
 
 
-  async def do_report(self, interaction, message, reporter):
+  async def do_report(self, interaction: discord.Interaction , message: discord.Message, reporter: discord.User | discord.Member | None):
     # embedの定義
     embed=discord.Embed(
       title="報告",
