@@ -1,11 +1,8 @@
-import os
 from typing import TypedDict, Literal, cast
 from supabase import create_client, Client
 
+from const import SUPABASE_URL, SUPABASE_KEY
 
-
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
 
 class GuildSettings(TypedDict):

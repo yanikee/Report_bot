@@ -9,6 +9,7 @@ import datetime
 
 from modules import error, check
 from modules.db import DB
+from const import EMOJI_DICT
 
 
 
@@ -71,7 +72,7 @@ class Report(commands.Cog):
 
 
 class ReportButton(ui.View):
-  def __init__(self, bot: commands.Bot, interaction: discord.Integration, message: discord.Message, timeout=30):
+  def __init__(self, bot: commands.Bot, interaction: discord.Interaction, message: discord.Message, timeout=30):
     super().__init__(timeout=timeout)
     self.bot = bot
     self.db = DB()
@@ -109,7 +110,7 @@ class ReportButton(ui.View):
       await self.do_report(interaction, self.message, None)
 
 
-  async def do_report(self, interaction: discord.Interaction , message: discord.Message, reporter: discord.User | discord.Member | None):
+  async def do_report(self, interaction: discord.Interaction, message: discord.Message, reporter: discord.User | discord.Member | None):
     # embedの定義
     embed=discord.Embed(
       title="報告",
@@ -183,8 +184,7 @@ class ReportButton(ui.View):
 
       await report_msg.edit(view=view)
 
-
-    await interaction.followup.edit_message(interaction.message.id, view=self)
+    await interaction.followup.edit_message(message.id, view=self)
 
 
 class ReportReasonModal(ui.Modal):

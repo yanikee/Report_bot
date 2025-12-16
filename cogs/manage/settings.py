@@ -1,132 +1,84 @@
 from discord.ext import commands
-from discord import app_commands
+from discord import app_commands, ui
 import discord
 
-import aiofiles
-import json
-import os
+from typing import Literal
 
 from modules import error
 from const import EMOJI_DICT
-
+from modules.db import DB
 
 
 class Settings(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
+    self.db = DB()
+    self.data = {}
 
   @app_commands.command(name="settings", description='設定を行います')
   @discord.app_commands.guild_only()
   async def settings(self, interaction:discord.Interaction):
-    if not interaction.channel.permissions_for(interaction.user).manage_channels:
-      embed = await error.generate(code="1-4-01")
-      return await interaction.response.send_message(embed=embed, ephemeral=True)
+    guild = interaction.guild
+    if not guild:
+      return
 
+    guild_data = await self.db.get_guild_settings(guild.id)
+    if not guild_data:
+      await self.db.upsert_guild_settings()
 
-    # 正しくないidを削除
-    for type in ["report", "pticket"]:
-      datas = await self.get_data(interaction, type=type)
-      for id_int in datas.values():
-        channel = interaction.guild.get_channel(id_int)
-        role = interaction.guild.get_role(id_int)
-        # 両方Falseの場合 -> "reply_num"以外は削除
-        if not any([channel, role]):
-          datas = {k: v for k, v in datas.items() if (k == "reply_num" or k == "pticket_num" or v != id_int)}
-
-      await self.save_data(interaction, data=datas, type=type)
-
-
-    embed, view = self.settings_page_1()
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-
-  async def get_data(self, interaction:discord.Interaction, type:str):
-    if type == "report":
-      path = f"data/report/guilds/{interaction.guild.id}.json"
-    else:
-      path = f"data/pticket/guilds/{interaction.guild.id}.json"
-
-    if os.path.exists(path):
-      async with aiofiles.open(path, encoding='utf-8', mode="r") as f:
-        contents = await f.read()
-      return json.loads(contents)
-    else:
-      return {}
-
-  async def save_data(self, interaction:discord.Interaction, data:dict, type:str):
-    if type == "report":
-      path = f"data/report/guilds/{interaction.guild.id}.json"
-    else:
-      path = f"data/pticket/guilds/{interaction.guild.id}.json"
-
-    contents = json.dumps(data, indent=2, ensure_ascii=False)
-    async with aiofiles.open(path, encoding='utf-8', mode="w") as f:
-      await f.write(contents)
+    view = self.settings_page_1()
+    await interaction.response.send_message(view=view, ephemeral=True)
 
 
   def settings_page_1(self):
-    embed = discord.Embed(
-      title="settings (1/3)",
-      description="1. Report機能\n"
-                  "1. 匿名Ticket機能\n"
-                  "これらの設定を行います",
-      color=0xffe7ab,
-    )
-    view = discord.ui.View()
-    button = discord.ui.Button(label="次へ", custom_id=f"settings_page_2", style=discord.ButtonStyle.primary, row=0)
-    view.add_item(button)
-    return embed, view
+    container = ui.Container(accent_color=0xffe7ab)
+    container.add_item(ui.TextDisplay("**settings (1/3)**\n"
+                                      "1. Report機能\n"
+                                      "1. 匿名Ticket機能\n"
+                                      "これらの設定を行います"))
+    row = ui.ActionRow()
+    row.add_item(ui.Button(label="次へ", custom_id=f"settings_page_2", style=discord.ButtonStyle.primary, row=0))
+    container.add_item(row)
+
+    view = ui.LayoutView()
+    view.add_item(container)
+    return view
 
 
-  async def settings_page_2(self, interaction:discord.Interaction, error:bool=None):
-    data = await self.get_data(interaction, type="report")
+  async def settings_page_2(self, interaction: discord.Interaction):
+    container = ui.Container(accent_color=0xffe7ab)
+    container.add_item(ui.TextDisplay("**settings (2/3)**\n## Report機能の設定"))
 
-    # Embedの定義
-    embed = discord.Embed(
-      title="settings (2/3)",
-      description="## Report機能の設定\n以下の**2つ**の設定を行ってください\n(Report機能を無効化したい場合は、全ての項目を未選択にしてください)",
-      color=0xffe7ab,
-    )
-    embed.add_field(
-      name=("🔵" if data.get("report_send_channel") else "⚪") + "Report送信チャンネル",
-      value="\n- Reportを送信するチャンネルを設定します\n",
-      inline=False
-    )
-    embed.add_field(
-      name=("🔵" if data.get("mention_role") else "⚪") + "Report送信時メンションロール(任意)",
-      value="- Reportが送信されたときにメンションするロールを設定します",
-      inline=False
-    )
+    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
-    view = discord.ui.View()
-    select_0 = discord.ui.ChannelSelect(
-      custom_id="settings_select_report_channel",
-      channel_types=[discord.ChannelType.text],
+    row1 = ui.ActionRow()
+    row1.add_item(ui.ChannelSelect(
       placeholder="Report送信チャンネル",
+      channel_types=[discord.ChannelType.text],
+      custom_id=f"settings_select_report_channel",
       min_values=0,
-      default_values=[interaction.guild.get_channel(data["report_send_channel"])] if data.get("report_send_channel") else None,
-      row=0
-    )
-    select_1 = discord.ui.RoleSelect(
-      custom_id="settings_select_report_mention_role",
+    ))
+    container.add_item(row1)
+
+    row2 = ui.ActionRow()
+    row2.add_item(ui.RoleSelect(
       placeholder="Report送信時メンションロール",
+      custom_id=f"settings_report_mention_role",
       min_values=0,
-      default_values=[interaction.guild.get_role(data["mention_role"])] if data.get("mention_role") else None,
-      row=1
-    )
-    view.add_item(select_0)
-    view.add_item(select_1)
+    ))
+    container.add_item(row2)
 
-    button_0 = discord.ui.Button(label="戻る", custom_id=f"settings_page_1", style=discord.ButtonStyle.gray, row=2)
-    button_1 = discord.ui.Button(label="次へ", custom_id=f"settings_page_3", style=discord.ButtonStyle.primary, row=2)
-    view.add_item(button_0)
-    view.add_item(button_1)
+    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
-    if error:
-      await interaction.followup.edit_message(interaction.message.id, view=None)
-      await interaction.followup.edit_message(interaction.message.id, embed=embed, view=view)
-    else:
-      await interaction.response.edit_message(embed=embed, view=view)
+    row3 = ui.ActionRow()
+    row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id=f"settings_page_1", style=discord.ButtonStyle.gray))
+    row3.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id=f"settings_page_3", style=discord.ButtonStyle.gray))
+    container.add_item(row3)
+
+    view = ui.LayoutView()
+    view.add_item(container)
+
+    await interaction.response.edit_message(view=view)
 
 
   async def settings_page_3(self, interaction:discord.Interaction, error:bool=None):
@@ -318,7 +270,6 @@ class Settings(commands.Cog):
 
     # settings_2
     elif custom_id == "settings_page_2":
-      await self.on_page_refresh_check_permissions(interaction, "report")
       await self.settings_page_2(interaction)
 
     # settings_3
