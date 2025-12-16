@@ -6,8 +6,8 @@ import json
 import aiofiles
 import datetime
 
-from modules import error
-from modules import check
+from modules import error, check
+from const import EMOJI_DICT
 
 
 
@@ -60,7 +60,7 @@ class PrivateTicket(commands.Cog):
         if isinstance(button, discord.Button):
           if button.emoji.name == "🔖": 
             view=discord.ui.View()
-            button_0 = discord.ui.Button(label="匿名Ticket", emoji=self.bot.emojis_dict["new_label"], custom_id=f"private_ticket", style=discord.ButtonStyle.primary, disabled=False, row=0)
+            button_0 = discord.ui.Button(label="匿名Ticket", emoji=EMOJI_DICT["new_label"], custom_id=f"private_ticket", style=discord.ButtonStyle.primary, disabled=False, row=0)
             view.add_item(button_0)
             await interaction.message.edit(view=view)
 
@@ -162,9 +162,9 @@ class PrivateTicketModal(discord.ui.Modal):
       color=0x95FFA1,
     )
     view = discord.ui.View()
-    button_0 = discord.ui.Button(emoji=self.bot.emojis_dict["edit"], label="編集", custom_id=f"pticket_edit_reply", style=discord.ButtonStyle.primary, row=0)
-    button_1 = discord.ui.Button(emoji=self.bot.emojis_dict["send"], label="送信", custom_id=f"pticket_send", style=discord.ButtonStyle.red, row=0, disabled=True)
-    button_2 = discord.ui.Button(emoji=self.bot.emojis_dict["upload_file"], label="ファイル送信", custom_id=f"pticket_send_file", style=discord.ButtonStyle.green, row=1)
+    button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"pticket_edit_reply", style=discord.ButtonStyle.primary, row=0)
+    button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"pticket_send", style=discord.ButtonStyle.red, row=0, disabled=True)
+    button_2 = discord.ui.Button(emoji=EMOJI_DICT["upload_file"], label="ファイル送信", custom_id=f"pticket_send_file", style=discord.ButtonStyle.green, row=1)
     view.add_item(button_0)
     view.add_item(button_1)
     view.add_item(button_2)

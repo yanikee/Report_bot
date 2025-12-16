@@ -78,8 +78,8 @@ class ReportButton(ui.View):
     self.interaction = interaction
     self.message = message
 
-    self.button_0 = ui.Button(label='通常報告', emoji=self.bot.emojis_dict["person_alert"], custom_id='public_report', style=discord.ButtonStyle.primary)
-    self.button_1 = ui.Button(label='匿名報告', emoji=self.bot.emojis_dict["report"], custom_id='private_report', style=discord.ButtonStyle.green)
+    self.button_0 = ui.Button(label='通常報告', emoji=EMOJI_DICT["person_alert"], custom_id='public_report', style=discord.ButtonStyle.primary)
+    self.button_1 = ui.Button(label='匿名報告', emoji=EMOJI_DICT["report"], custom_id='private_report', style=discord.ButtonStyle.green)
 
     self.add_item(self.button_0)
     self.add_item(self.button_1)
@@ -178,7 +178,7 @@ class ReportButton(ui.View):
 
       # 返信ボタンを設置
       view = ui.View()
-      button_0 = ui.Button(label="返信", emoji=self.bot.emojis_dict["reply"], custom_id=f"report_create_thread", style=discord.ButtonStyle.primary)
+      button_0 = ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"report_create_thread", style=discord.ButtonStyle.primary)
       view.add_item(button_0)
 
       await report_msg.edit(view=view)

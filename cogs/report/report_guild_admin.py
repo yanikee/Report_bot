@@ -7,6 +7,7 @@ import aiofiles
 import datetime
 
 from modules import error
+from const import EMOJI_DICT
 
 
 
@@ -59,9 +60,9 @@ class ReportGuildAdmin(commands.Cog):
         color=0x95FFA1,
       )
       view = discord.ui.View()
-      button_0 = discord.ui.Button(emoji=self.bot.emojis_dict["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
-      button_1 = discord.ui.Button(emoji=self.bot.emojis_dict["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=True)
-      button_2 = discord.ui.Button(emoji=self.bot.emojis_dict["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
+      button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
+      button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=True)
+      button_2 = discord.ui.Button(emoji=EMOJI_DICT["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
       view.add_item(button_0)
       view.add_item(button_1)
       view.add_item(button_2)
@@ -141,7 +142,7 @@ class ReportGuildAdmin(commands.Cog):
 
       # 追加返信ボタン設置
       view = discord.ui.View()
-      button = discord.ui.Button(label="追加で返信", emoji=self.bot.emojis_dict["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
+      button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
       await interaction.channel.send(view=view)
 
@@ -154,10 +155,10 @@ class ReportGuildAdmin(commands.Cog):
         color=0x95FFA1,
       )
       view = discord.ui.View()
-      button_0 = discord.ui.Button(emoji=self.bot.emojis_dict["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
-      button_1 = discord.ui.Button(emoji=self.bot.emojis_dict["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=True)
-      button_2 = discord.ui.Button(emoji=self.bot.emojis_dict["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
-      button_3 = discord.ui.Button(emoji=self.bot.emojis_dict["delete"], label="もう返信しない", custom_id=f"report_cancel", style=discord.ButtonStyle.gray, row=2)
+      button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
+      button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=True)
+      button_2 = discord.ui.Button(emoji=EMOJI_DICT["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
+      button_3 = discord.ui.Button(emoji=EMOJI_DICT["delete"], label="もう返信しない", custom_id=f"report_cancel", style=discord.ButtonStyle.gray, row=2)
       view.add_item(button_0)
       view.add_item(button_1)
       view.add_item(button_2)
@@ -172,7 +173,7 @@ class ReportGuildAdmin(commands.Cog):
 
       # 追加返信ボタン設置
       view = discord.ui.View()
-      button = discord.ui.Button(label="追加で返信", emoji=self.bot.emojis_dict["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
+      button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
       await interaction.channel.send(view=view)
 
@@ -213,9 +214,9 @@ class EditReplyModal(discord.ui.Modal):
       button_bool = False
 
     view = discord.ui.View()
-    button_0 = discord.ui.Button(emoji=self.bot.emojis_dict["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
-    button_1 = discord.ui.Button(emoji=self.bot.emojis_dict["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=button_bool)
-    button_2 = discord.ui.Button(emoji=self.bot.emojis_dict["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
+    button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
+    button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=button_bool)
+    button_2 = discord.ui.Button(emoji=EMOJI_DICT["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
     view.add_item(button_0)
     view.add_item(button_1)
     view.add_item(button_2)
