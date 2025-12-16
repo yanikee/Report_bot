@@ -6,14 +6,14 @@ from typing import Literal
 
 from modules import error
 from const import EMOJI_DICT
-from modules.db import DB
+from modules.db import DB, GuildSettings
 
 
 class Settings(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
     self.db = DB()
-    self.data = {}
+    self.data: dict[int, GuildSettings] = {}
 
   @app_commands.command(name="settings", description='設定を行います')
   @discord.app_commands.guild_only()
@@ -24,7 +24,9 @@ class Settings(commands.Cog):
 
     guild_data = await self.db.get_guild_settings(guild.id)
     if not guild_data:
-      await self.db.upsert_guild_settings()
+      guild_data = await self.db.create_guild_settings(guild.id)
+
+    self.data[guild.id] = guild_data
 
     view = self.settings_page_1()
     await interaction.response.send_message(view=view, ephemeral=True)
@@ -46,6 +48,10 @@ class Settings(commands.Cog):
 
 
   async def settings_page_2(self, interaction: discord.Interaction):
+    guild = interaction.guild
+    if not guild:
+      return
+
     container = ui.Container(accent_color=0xffe7ab)
     container.add_item(ui.TextDisplay("**settings (2/3)**\n## Report機能の設定"))
 
@@ -57,6 +63,7 @@ class Settings(commands.Cog):
       channel_types=[discord.ChannelType.text],
       custom_id=f"settings_select_report_channel",
       min_values=0,
+      default_values=[self.data[guild.id]["report_channel_id"]]
     ))
     container.add_item(row1)
 

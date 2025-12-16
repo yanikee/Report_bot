@@ -45,6 +45,22 @@ class DB:
   async def upsert_guild_settings(self, data: dict):
     self.supabase.table("guild_settings").upsert(data).execute()
 
+  async def create_guild_settings(self, guild_id: int) -> GuildSettings:
+    data = {
+      "guild_id": guild_id,
+      "report_channel_id": None,
+      "report_mention_role_id": None,
+      "report_count": 0,
+      "ticket_channel_id": None,
+      "ticket_button_channel_id": None,
+      "ticket_mention_role_id": None,
+      "ticket_count": 0,
+    }
+
+    await self.upsert_guild_settings(data)
+    data = await self.get_guild_settings(guild_id)
+    return cast(GuildSettings, data)
+
   # スレッドの取得
   async def get_thread(self, thread_id: int) -> Threads | None:
     res = self.supabase.table("threads").select("*").eq("thread_id", thread_id).execute()
