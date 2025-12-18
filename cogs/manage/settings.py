@@ -40,7 +40,7 @@ class Settings(commands.Cog):
                                       "1. 匿名Ticket機能\n"
                                       "これらの設定を行います"))
     row = ui.ActionRow()
-    row.add_item(ui.Button(label="次へ", custom_id=f"settings_page_2", style=discord.ButtonStyle.primary, row=0))
+    row.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id=f"settings_page_2", style=discord.ButtonStyle.gray))
     container.add_item(row)
 
     view = ui.LayoutView()
@@ -64,7 +64,7 @@ class Settings(commands.Cog):
     row1.add_item(ui.ChannelSelect(
       placeholder="Report送信チャンネル",
       channel_types=[discord.ChannelType.text],
-      custom_id=f"settings_select_report_channel",
+      custom_id=f"settings_report_channel",
       min_values=0,
       default_values=default_values
     ))
@@ -108,7 +108,7 @@ class Settings(commands.Cog):
     row1.add_item(ui.ChannelSelect(
       placeholder="Ticket送信チャンネル",
       channel_types=[discord.ChannelType.text],
-      custom_id=f"settings_select_ticket_channel",
+      custom_id=f"settings_ticket_channel",
       min_values=0,
       default_values=default_values
     ))
@@ -128,7 +128,7 @@ class Settings(commands.Cog):
     default_values = await self.get_fetch_channel(guild, self.data[guild.id]["ticket_button_channel_id"])
     row3.add_item(ui.ChannelSelect(
       placeholder="Ticket開始ボタンを設置するチャンネル",
-      custom_id=f"settings_report_mention_role",
+      custom_id=f"settings_ticket_button_channel",
       min_values=0,
       default_values=default_values
     ))
