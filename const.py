@@ -5,6 +5,7 @@ import os
 load_dotenv(override=True)
 
 EMOJI_DICT = {
+  "check": "<:check:1451053158880116798>",
   "add": "<:add:1335909447687733300>",
   "arrow_forward": "<:arrow_forward:1450452012566315120>",
   "arrow_back": "<:arrow_back:1335907900920565780>",
