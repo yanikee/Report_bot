@@ -42,7 +42,7 @@ class DB:
     return cast(GuildSettings, res.data[0]) if res.data else None
 
     # 設定の保存/更新
-  async def upsert_guild_settings(self, data: dict):
+  async def upsert_guild_settings(self, data):
     self.supabase.table("guild_settings").upsert(data).execute()
 
   async def create_guild_settings(self, guild_id: int) -> GuildSettings:

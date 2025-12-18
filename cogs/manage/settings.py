@@ -173,8 +173,13 @@ class Settings(commands.Cog):
 
     return [role]
 
+
   @commands.Cog.listener()
   async def on_interaction(self, interaction: discord.Interaction):
+    guild = interaction.guild
+    if not guild:
+      return
+
     if not interaction.data:
       return
 
@@ -182,18 +187,42 @@ class Settings(commands.Cog):
     if not custom_id:
       return
 
-    # settings_1
-    if custom_id == "settings_page_1":
-      view = self.settings_page_1()
-      await interaction.response.edit_message(view=view)
+    # page
+    if "settings_page" in custom_id:
+      if custom_id == "settings_page_1":
+        view = self.settings_page_1()
+        await interaction.response.edit_message(view=view)
+        return
 
-    # settings_2
-    elif custom_id == "settings_page_2":
-      await self.settings_page_2(interaction)
+      elif custom_id == "settings_page_2":
+        await self.settings_page_2(interaction)
+        return
 
-    # settings_3
-    elif custom_id == "settings_page_3":
-      await self.settings_page_3(interaction)
+      elif custom_id == "settings_page_3":
+        await self.settings_page_3(interaction)
+        return
+
+    # settings
+    if "settings_report" in custom_id or "settings_ticket" in custom_id:
+      values = interaction.data.get("values")
+
+      case_type = "report" if "report" in custom_id else "ticket"
+      value = int(values[0]) if values else None
+
+      await interaction.response.defer()
+
+      if "channel" in custom_id:
+        self.data[guild.id][str(f"{case_type}_channel_id")] = value
+
+      elif "mention_role" in custom_id:
+        self.data[guild.id][str(f"{case_type}_mention_role_id")] = value
+
+      elif "button_channel" in custom_id:
+        self.data[guild.id]["ticket_button_channel_id"] = value
+
+      await self.db.upsert_guild_settings(self.data[guild.id])
+      return
+
 
 
 
