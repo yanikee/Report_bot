@@ -2,11 +2,9 @@ from discord.ext import commands
 from discord import app_commands, ui
 import discord
 
-from typing import Literal
-
-from modules import error
 from const import EMOJI_DICT
 from modules.db import DB, GuildSettings
+
 
 
 class Settings(commands.Cog):
@@ -18,10 +16,12 @@ class Settings(commands.Cog):
 
   @app_commands.command(name="settings", description='設定を行います')
   @discord.app_commands.guild_only()
-  async def settings(self, interaction:discord.Interaction):
+  async def settings(self, interaction: discord.Interaction):
     guild = interaction.guild
     if not guild:
       return
+
+    await interaction.response.defer(ephemeral=True)
 
     guild_data = await self.db.get_guild_settings(guild.id)
     if not guild_data:
@@ -30,7 +30,7 @@ class Settings(commands.Cog):
     self.data[guild.id] = guild_data
 
     view = self.settings_page_1()
-    await interaction.response.send_message(view=view, ephemeral=True)
+    await interaction.followup.send(view=view)
 
 
   def settings_page_1(self) -> ui.LayoutView:
@@ -94,7 +94,7 @@ class Settings(commands.Cog):
     await interaction.response.edit_message(view=view)
 
 
-  async def settings_page_3(self, interaction:discord.Interaction):
+  async def settings_page_3(self, interaction: discord.Interaction):
     guild = interaction.guild
     if not guild:
       return
