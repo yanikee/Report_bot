@@ -104,9 +104,9 @@ class ReportButton(ui.View):
       try:
         await interaction.user.send("テストメッセージ", silent=True, delete_after=0.1)
       except Exception:
-        embed=await error.generate(code="3-4-03")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
+        msg = "botからあなたのDMにメッセージを送信できませんでした。\n設定を確認してください。"
+        await error.send_error(interaction, msg)
+
       await self.do_report(interaction, self.message, None)
 
 
