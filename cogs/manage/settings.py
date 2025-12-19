@@ -147,7 +147,8 @@ class Settings(commands.Cog):
     row3 = ui.ActionRow()
     row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id=f"settings_page_2", style=discord.ButtonStyle.gray, row=0))
     row3.add_item(ui.Button(label="Ticket作成ボタンを設置せずに終了", emoji=EMOJI_DICT["check"], custom_id=f"settings_page_4_no", style=discord.ButtonStyle.gray, row=1))
-    row3.add_item(ui.Button(label="Ticket作成ボタンを設置して終了", emoji=EMOJI_DICT["new_label"], custom_id=f"settings_page_4_yes", style=discord.ButtonStyle.gray, row=2))
+    disable = not all([self.data[guild.id]["ticket_channel_id"], self.data[guild.id]["ticket_button_channel_id"]])
+    row3.add_item(ui.Button(label="Ticket作成ボタンを設置して終了", emoji=EMOJI_DICT["new_label"], custom_id=f"settings_page_4_yes", style=discord.ButtonStyle.gray, row=2, disabled=disable))
     container.add_item(row3)
 
     view = ui.LayoutView()
