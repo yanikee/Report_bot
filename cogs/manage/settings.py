@@ -2,8 +2,6 @@ from discord.ext import commands
 from discord import app_commands, ui
 import discord
 
-from typing import Literal
-
 from const import EMOJI_DICT
 from modules.db import DB, GuildSettings
 from modules.error import send_error
