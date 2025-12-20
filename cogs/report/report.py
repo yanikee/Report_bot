@@ -2,11 +2,6 @@ from discord.ext import commands
 from discord import app_commands, ui
 import discord
 
-import os
-import json
-import aiofiles
-import datetime
-
 from modules import error, check
 from modules.db import DB
 from const import EMOJI_DICT
@@ -36,15 +31,13 @@ class Report(commands.Cog):
     if not channel_id:
       return
 
+    await interaction.response.defer(ephemeral=True)
+
     guild_data = await self.db.get_guild_settings(guild_id)
     if not guild_data:
       return
 
-    thread_data = await self.db.get_thread(channel_id)
-    if not thread_data:
-      return
-
-    is_guild_blocked = await self.db.toggle_guild_block(guild_id, interaction.user.id)
+    is_guild_blocked = await self.db.is_guild_blocked(guild_id, interaction.user.id)
     if is_guild_blocked:
       return
 
@@ -52,26 +45,18 @@ class Report(commands.Cog):
     if not report_channel_id:
       return
 
-    is_thread_blocked = await self.db.toggle_thread_block(report_channel_id)
-    if is_thread_blocked:
-      return
-
-    # cooldown
     embed, self.user_cooldowns = check.user_cooldown(interaction.user.id, self.user_cooldowns)
     if embed:
-      await interaction.response.send_message(embed=embed, ephemeral=True)
+      await interaction.followup.send(embed=embed)
       return
 
-    button = ReportButton(self.bot, interaction, message)
-    embed=discord.Embed(
-      description="通常報告：報告者名がサーバー管理者に伝わる\n匿名報告：報告者名は誰にも伝わらない",
-      color=0xffe7ab,
-    )
-    await interaction.response.send_message(embed=embed, view=button, ephemeral=True)
+    view = ReportButton(self.bot, interaction, message)
+
+    await interaction.followup.send(view=view)
 
 
 
-class ReportButton(ui.View):
+class ReportButton(ui.LayoutView):
   def __init__(self, bot: commands.Bot, interaction: discord.Interaction, message: discord.Message, timeout=30):
     super().__init__(timeout=timeout)
     self.bot = bot
@@ -79,17 +64,22 @@ class ReportButton(ui.View):
     self.interaction = interaction
     self.message = message
 
-    self.button_0 = ui.Button(label='通常報告', emoji=EMOJI_DICT["person_alert"], custom_id='public_report', style=discord.ButtonStyle.primary)
-    self.button_1 = ui.Button(label='匿名報告', emoji=EMOJI_DICT["report"], custom_id='private_report', style=discord.ButtonStyle.green)
+    container = ui.Container(accent_color=0xffe7ab)
+    container.add_item(ui.TextDisplay("## Report"))
+    container.add_item(ui.TextDisplay("通常報告：報告者名がサーバー管理者に伝わる\n匿名報告：報告者名は誰にも伝わらない"))
 
-    self.add_item(self.button_0)
-    self.add_item(self.button_1)
+    row = ui.ActionRow()
+    self.button_0 = ui.Button(label='通常報告', emoji=EMOJI_DICT["person_alert"], custom_id='public_report', style=discord.ButtonStyle.gray)
+    self.button_1 = ui.Button(label='匿名報告', emoji=EMOJI_DICT["report"], custom_id='private_report', style=discord.ButtonStyle.gray)
+    row.add_item(self.button_0)
+    row.add_item(self.button_1)
+
+    container.add_item(row)
+
+    self.add_item(container)
 
 
   async def interaction_check(self, interaction: discord.Interaction):
-    self.button_0.disabled = True
-    self.button_1.disabled = True
-
     if not interaction.data:
       return
 
@@ -99,10 +89,10 @@ class ReportButton(ui.View):
 
     if custom_id == "public_report":
       await self.do_report(interaction, self.message, interaction.user)
+
     elif custom_id == "private_report":
-      # DMにテストメッセージを送信する
       try:
-        await interaction.user.send("テストメッセージ", silent=True, delete_after=0.1)
+        await interaction.user.send("テストメッセージ", delete_after=0.1)
       except Exception:
         msg = "botからあなたのDMにメッセージを送信できませんでした。\n設定を確認してください。"
         await error.send_error(interaction, msg)
@@ -111,10 +101,8 @@ class ReportButton(ui.View):
 
 
   async def do_report(self, interaction: discord.Interaction, message: discord.Message, reporter: discord.User | discord.Member | None):
-    # embedの定義
     embed=discord.Embed(
-      title="報告",
-      description=message.content,
+      description=f"{message.content}\n{message.jump_url}",
       color=0xffe7ab,
     )
     embed.set_image(url=message.attachments[0].url if message.attachments else None)
@@ -128,7 +116,6 @@ class ReportButton(ui.View):
     )
     message.embeds.insert(0, embed)
 
-    # report_send_channelの取得
     guild_id = interaction.guild_id
     if not guild_id:
       return
@@ -159,43 +146,40 @@ class ReportButton(ui.View):
       mention_msg = None
 
     try:
-      report_msg = await channel.send(f"{mention_msg}\n参照元：{message.jump_url}", embeds=message.embeds)
+      report_msg = await channel.send(mention_msg, embeds=message.embeds)
     except Exception as e:
       return
 
     # report理由記入modal
-    modal = ReportReasonModal(reporter, report_msg, message)
+    modal = ReportReasonModal(interaction, message, report_msg, reporter)
     await interaction.response.send_modal(modal)
 
-
-    # 匿名reportの場合 -> 報告者idを保存{msg.id: user.id}
     if not reporter:
       await self.db.create_thread_entry(
-        thread_id=report_channel_id,
+        thread_id=report_msg.id,
         guild_id=guild_id,
         user_id=interaction.user.id,
         case_type="report"
       )
 
-      # 返信ボタンを設置
       view = ui.View()
-      button_0 = ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"report_create_thread", style=discord.ButtonStyle.primary)
+      button_0 = ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"report_create_thread", style=discord.ButtonStyle.gray)
       view.add_item(button_0)
 
       await report_msg.edit(view=view)
 
-    await interaction.followup.edit_message(message.id, view=self)
 
 
 class ReportReasonModal(ui.Modal):
-  def __init__(self, reporter: discord.User | discord.Member | None, report_msg: discord.Message, reported_msg: discord.Message):
+  def __init__(self, interaction: discord.Interaction, reported_msg: discord.Message, report_msg: discord.Message, reporter: discord.User | discord.Member | None):
     super().__init__(title=f'報告理由記入用modal')
+    self.interaction = interaction
+    self.reported_msg = reported_msg
     self.reporter = reporter
     self.report_msg = report_msg
-    self.reported_msg = reported_msg
 
     self.report_reason = ui.TextInput(
-      label="報告の理由(不快に思った点など)を記入してください",
+      label="報告の理由を記入してください",
       style=discord.TextStyle.long,
       required=True,
       row=0
@@ -220,15 +204,30 @@ class ReportReasonModal(ui.Modal):
     embeds.append(embed)
     await self.report_msg.edit(embeds=embeds)
 
-    if self.reporter:
-      await interaction.response.send_message("報告が完了しました。\nありがとうございました。\n\nサーバー管理者から直接話を伺うことがあります。", ephemeral=True)
-    else:
-      await interaction.response.send_message("サーバー管理者に匿名Reportが送信されました。\nDMにてサーバー管理者からの返信をお待ちください。", ephemeral=True)
+    if not self.interaction.message:
+      return
 
-      # 匿名Report完了確認membedを定義
+    await interaction.response.defer()
+
+    view = ui.LayoutView()
+    container = ui.Container(accent_color=0xffe7ab)
+    container.add_item(ui.TextDisplay("## Report"))
+
+    if self.reporter:
+      msg = "報告が完了しました。\nサーバー管理者から直接話を伺うことがあります。"
+    else:
+      msg = "サーバー管理者に匿名Reportが送信されました。\nDMにてサーバー管理者と会話を行うことができます。"
+
+    msg += f"\n\n**報告したメッセージ**\n{self.reported_msg.jump_url}"
+
+    container.add_item(ui.TextDisplay(msg))
+    view.add_item(container)
+    await self.interaction.followup.edit_message(self.interaction.message.id, view=view)
+
+    if not self.reporter:
       embed_1=discord.Embed(
         url=self.report_msg.jump_url,
-        description=f"## 匿名Report\n### Reportしたメッセージ\n　{self.reported_msg.jump_url}\n### Report内容\n{self.report_reason.value}",
+        description=f"## 匿名Report\n### Reportしたメッセージ\n　{self.reported_msg.jump_url}\n### Report理由\n　{self.report_reason.value}",
         color=0xffe7ab,
       )
       embed_1.set_footer(
@@ -237,8 +236,7 @@ class ReportReasonModal(ui.Modal):
         )
 
       embed_2=discord.Embed(
-        description="- ファイルを添付する場合や追加で何か送信する場合は、**このメッセージに返信**する形で送信してください。\n"
-                    "- あなたの情報(ユーザー名, idなど)が外部に漏れることは一切ありません。",
+        description="ファイル添付や追伸の際には、**このメッセージに返信**してください。",
         color=0xffe7ab,
       )
       await interaction.user.send(embeds=[embed_1, embed_2])

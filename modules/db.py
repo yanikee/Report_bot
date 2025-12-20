@@ -78,6 +78,10 @@ class DB:
     }
     self.supabase.table("threads").insert(data).execute()
 
+  async def is_guild_blocked(self, guild_id: int, user_id: int) -> bool:
+    res = self.supabase.table("blocked_users").select("*").eq("guild_id", guild_id).eq("user_id", user_id).maybe_single().execute()
+    return res is not None
+
   # ブロック状態のトグル (サーバー全体)
   # 戻り値: True(ブロックした), False(解除した)
   async def toggle_guild_block(self, guild_id: int, user_id: int) -> bool:
