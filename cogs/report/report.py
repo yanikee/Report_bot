@@ -2,7 +2,7 @@ from discord.ext import commands
 from discord import app_commands, ui
 import discord
 
-from modules import error, check
+from modules import error, functions
 from modules.db import DB
 from const import EMOJI_DICT
 
@@ -45,7 +45,7 @@ class Report(commands.Cog):
     if not report_channel_id:
       return
 
-    embed, self.user_cooldowns = check.user_cooldown(interaction.user.id, self.user_cooldowns)
+    embed, self.user_cooldowns = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
     if embed:
       await interaction.followup.send(embed=embed)
       return

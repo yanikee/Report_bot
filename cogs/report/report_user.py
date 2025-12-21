@@ -4,7 +4,7 @@ import discord
 
 import re
 
-from modules import check
+from modules.functions import user_cooldown, get_reply_view
 from modules.db import DB
 from const import EMOJI_DICT
 
@@ -86,7 +86,7 @@ class ReplyToReply(commands.Cog):
       return
 
     # cooldown
-    embed, self.user_cooldowns = check.user_cooldown(user_id, self.user_cooldowns)
+    embed, self.user_cooldowns = user_cooldown(user_id, self.user_cooldowns)
     if embed:
       await message.add_reaction("❌")
       embed.set_footer(text="このメッセージは15秒後に削除されます。")
@@ -168,17 +168,7 @@ class ReplyToReply(commands.Cog):
       view = ui.LayoutView().from_message(panel_msg)
 
     else:
-      view = ui.LayoutView()
-
-      container = ui.Container(accent_color=0x95FFA1)
-      container.add_item(ui.TextDisplay("### 返信内容\n下のボタンから編集してください。"))
-      container.add_item(ui.TextDisplay("### 添付ファイル\nなし"))
-      view.add_item(container)
-
-      row = ui.ActionRow()
-      row.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
-      row.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=True))
-      view.add_item(row)
+      view = await get_reply_view()
 
 
     try:

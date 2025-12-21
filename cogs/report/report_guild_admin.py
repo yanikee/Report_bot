@@ -9,6 +9,7 @@ import datetime
 
 from modules import error
 from modules.db import DB
+from modules.functions import get_reply_view
 from const import EMOJI_DICT
 
 
@@ -19,7 +20,7 @@ class ReportGuildAdmin(commands.Cog):
     self.db = DB()
 
   @commands.Cog.listener()
-  async def on_interaction(self, interaction:discord.Interaction):
+  async def on_interaction(self, interaction: discord.Interaction):
     data = interaction.data
     if not data:
       return
@@ -30,11 +31,11 @@ class ReportGuildAdmin(commands.Cog):
 
     custom_id = data.get("custom_id")
 
-    if custom_id == "report_create_thread":
-      message = interaction.message
-      if not message:
-        return
+    message = interaction.message
+    if not message:
+      return
 
+    if custom_id == "report_create_thread":
       guild_data = await self.db.get_guild_settings(guild.id)
       if not guild_data:
         return
@@ -50,25 +51,26 @@ class ReportGuildAdmin(commands.Cog):
       # buttonの削除
       await message.edit(view=None)
 
-      embed=discord.Embed(
-        title="返信内容",
-        description="下のボタンから編集してください。",
-        color=0x95FFA1,
-      )
-      view = discord.ui.View()
-      button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
-      button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=True)
-      view.add_item(button_0)
-      view.add_item(button_1)
+      view = ui.LayoutView()
 
-      await thread.send(embed=embed, view=view)
+      container = ui.Container(accent_color=0x95FFA1)
+      container.add_item(ui.TextDisplay("### 返信内容\n下のボタンから編集してください。"))
+      container.add_item(ui.TextDisplay("### 添付ファイル\nなし"))
+      view.add_item(container)
+
+      row = ui.ActionRow()
+      row.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
+      row.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=True))
+      view.add_item(row)
+
+      await thread.send(view=view)
 
       await interaction.response.send_message("このスレッドから返信を行えます。", ephemeral=True)
 
 
     # スレッド内での返信編集
     elif custom_id == "report_edit_reply":
-      modal = EditReplyModal(self.bot, interaction.message)
+      modal = EditReplyModal(self.bot, message)
       await interaction.response.send_modal(modal)
 
 
@@ -177,17 +179,16 @@ class EditReplyModal(ui.Modal):
     super().__init__(title=f'報告への返信')
     self.bot = bot
     self.msg = msg
-    self.embed = msg.embeds[0]
 
-    description = self.embed.description
+    content = msg.components[0].children[0].content.replace("### 返信内容", "") #type: ignore
 
     # modalのdefaultを定義
-    if "下のボタンから編集してください。" == description:
+    if "下のボタンから編集してください。" in content:
       default = None
-      self.canSend = False
+      self.disabled = True
     else:
-      default = description
-      self.canSend = True
+      default = content
+      self.disabled = False
 
     self.reply_input = discord.ui.TextInput(
       style=discord.TextStyle.long,
@@ -204,25 +205,7 @@ class EditReplyModal(ui.Modal):
   async def on_submit(self, interaction: discord.Interaction):
     await interaction.response.defer()
 
-    view = ui.LayoutView()
-
-    container = ui.Container(accent_color=0xffe7ab)
-    container.add_item(ui.TextDisplay("## Report"))
-
-    container.add_item(ui.Separator())
-
-    container.add_item(ui.TextDisplay(f"### 返信内容\n{self.reply_input.value}"))
-
-    container.add_item(ui.TextDisplay(f"### 添付ファイル"))
-    if values := self.file_input.values:
-      for file in values:
-        container.add_item(ui.File(await file.to_file()))
-    else:
-      container.add_item(ui.TextDisplay("なし"))
-
-    view.add_item(container)
-    view.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
-    view.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=self.canSend))
+    view = await get_reply_view(self.reply_input.value, self.file_input.values)
 
     await interaction.followup.edit_message(self.msg.id, view=view)
 

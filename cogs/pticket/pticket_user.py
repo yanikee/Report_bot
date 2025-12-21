@@ -6,7 +6,7 @@ import json
 import aiofiles
 import datetime
 
-from modules import error, check
+from modules import error, functions
 from const import EMOJI_DICT
 
 
@@ -47,13 +47,13 @@ class PticketReplyToReply(commands.Cog):
       return
 
     # guild_block
-    embed = await check.is_guild_block(bot=self.bot, guild=None, user_id=None, message=message, referenced_message=msg)
+    embed = await functions.is_guild_block(bot=self.bot, guild=None, user_id=None, message=message, referenced_message=msg)
     if embed:
       await message.reply(embed=embed)
       return
 
     # cooldown
-    embed, self.user_cooldowns = check.user_cooldown(message.author.id, self.user_cooldowns)
+    embed, self.user_cooldowns = functions.user_cooldown(message.author.id, self.user_cooldowns)
     if embed:
       await message.add_reaction("❌")
       embed.set_footer(text="このメッセージは15秒後に削除されます。")

@@ -6,7 +6,7 @@ import json
 import aiofiles
 import datetime
 
-from modules import error, check
+from modules import error, functions
 from const import EMOJI_DICT
 
 
@@ -32,13 +32,13 @@ class PrivateTicket(commands.Cog):
       return
 
     # guild_block
-    embed = await check.is_guild_block(bot=self.bot,guild=interaction.guild, user_id=interaction.user.id)
+    embed = await functions.is_guild_block(bot=self.bot,guild=interaction.guild, user_id=interaction.user.id)
     if embed:
       await interaction.response.send_message(embed=embed, ephemeral=True)
       return
 
     # cooldown
-    embed, self.user_cooldowns = check.user_cooldown(interaction.user.id, self.user_cooldowns)
+    embed, self.user_cooldowns = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
     if embed:
       await interaction.response.send_message(embed=embed, ephemeral=True)
       return
