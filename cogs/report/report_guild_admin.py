@@ -214,9 +214,9 @@ class EditReplyModal(ui.Modal):
     container.add_item(ui.TextDisplay(f"### 返信内容\n{self.reply_input.value}"))
 
     container.add_item(ui.TextDisplay(f"### 添付ファイル"))
-    if self.file_input.values:
-      file = await self.file_input.values[0].to_file()
-      container.add_item(ui.File(file))
+    if values := self.file_input.values:
+      for file in values:
+        container.add_item(ui.File(await file.to_file()))
     else:
       container.add_item(ui.TextDisplay("なし"))
 
