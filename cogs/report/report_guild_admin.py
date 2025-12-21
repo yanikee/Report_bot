@@ -1,4 +1,5 @@
 from discord.ext import commands
+from discord import ui
 import discord
 
 import os
@@ -7,6 +8,7 @@ import aiofiles
 import datetime
 
 from modules import error
+from modules.db import DB
 from const import EMOJI_DICT
 
 
@@ -14,45 +16,39 @@ from const import EMOJI_DICT
 class ReportGuildAdmin(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
+    self.db = DB()
 
   @commands.Cog.listener()
   async def on_interaction(self, interaction:discord.Interaction):
-    try:
-      custom_id = interaction.data["custom_id"]
-    except KeyError:
+    data = interaction.data
+    if not data:
       return
 
-    # privateのやつがなかった場合 -> return
-    if custom_id in ["report_create_thread", "report_edit_reply", "report_send"]:
-      path = f"data/report/private_report/{interaction.guild.id}.json"
-      if not os.path.exists(path):
-        e = f"[ERROR[3-1-01]]{datetime.datetime.now()}\n- GUILD_ID:{interaction.guild.id}\nJson file was not found"
-        print(e)
-        embed=await error.generate(code="3-1-01")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-        return
+    guild = interaction.guild
+    if not guild:
+      return
 
+    custom_id = data.get("custom_id")
 
     if custom_id == "report_create_thread":
+      message = interaction.message
+      if not message:
+        return
+
+      guild_data = await self.db.get_guild_settings(guild.id)
+      if not guild_data:
+        return
+
+      guild_data["report_count"] += 1
+      name = f"private_report-{str(guild_data["report_count"]).zfill(4)}"
+
+      try:
+        thread = await message.create_thread(name=name)
+      except Exception:
+        return
+
       # buttonの削除
-      await interaction.message.edit(view=None)
-
-      # reply_numを定義
-      path = f"data/report/guilds/{interaction.guild.id}.json"
-      async with aiofiles.open(path, encoding='utf-8', mode="r") as f:
-        contents = await f.read()
-      report_dict = json.loads(contents)
-      # 存在しなかった場合は作る
-      if not report_dict.get("reply_num"):
-        report_dict["reply_num"] = 0
-      report_dict["reply_num"] += 1
-      # 保存
-      async with aiofiles.open(path, mode="w") as f:
-        contents = json.dumps(report_dict, indent=2, ensure_ascii=False)
-        await f.write(contents)
-
-      # thread作成, 送信
-      thread = await interaction.message.create_thread(name=f"private_report-{str(report_dict['reply_num']).zfill(4)}")
+      await message.edit(view=None)
 
       embed=discord.Embed(
         title="返信内容",
@@ -62,14 +58,12 @@ class ReportGuildAdmin(commands.Cog):
       view = discord.ui.View()
       button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
       button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=True)
-      button_2 = discord.ui.Button(emoji=EMOJI_DICT["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
       view.add_item(button_0)
       view.add_item(button_1)
-      view.add_item(button_2)
 
       await thread.send(embed=embed, view=view)
 
-      await interaction.response.send_message("こちらのスレッドから返信を行えます。", ephemeral=True)
+      await interaction.response.send_message("このスレッドから返信を行えます。", ephemeral=True)
 
 
     # スレッド内での返信編集
@@ -178,50 +172,59 @@ class ReportGuildAdmin(commands.Cog):
       await interaction.channel.send(view=view)
 
 
-class EditReplyModal(discord.ui.Modal):
-  def __init__(self, bot, msg):
-    super().__init__(title=f'報告への返信用modal')
+class EditReplyModal(ui.Modal):
+  def __init__(self, bot: commands.Bot, msg: discord.Message):
+    super().__init__(title=f'報告への返信')
     self.bot = bot
     self.msg = msg
+    self.embed = msg.embeds[0]
+
+    description = self.embed.description
 
     # modalのdefaultを定義
-    if "下のボタンから編集してください。" in self.msg.embeds[0].description:
+    if "下のボタンから編集してください。" == description:
       default = None
+      self.canSend = False
     else:
-      default = self.msg.embeds[0].description
+      default = description
+      self.canSend = True
 
-    self.reply = discord.ui.TextInput(
-      label="返信内容を入力（送信ボタンで一時保存できます。）",
+    self.reply_input = discord.ui.TextInput(
       style=discord.TextStyle.long,
       default=default,
-      required=True,
-      row=0
+      required=False,
     )
-    self.add_item(self.reply)
+    self.file_input = ui.FileUpload(
+      required=False
+    )
+    self.add_item(ui.Label(text="返信内容", component=self.reply_input))
+    self.add_item(ui.Label(text="添付ファイル", component=self.file_input))
+
 
   async def on_submit(self, interaction: discord.Interaction):
-    # NOTE: 編集が適用されたことが分かりやすいように、わざとdeferしてる
     await interaction.response.defer()
-    self.msg.embeds[0].description = self.reply.value
-    self.msg.embeds[0].set_author(
-      name=f"一時保存：{interaction.user.display_name}",
-      icon_url=interaction.user.display_avatar.url if interaction.user.display_avatar else None,
-    )
 
-    if self.reply.value == "下のボタンから編集してください。":
-      button_bool = True
+    view = ui.LayoutView()
+
+    container = ui.Container(accent_color=0xffe7ab)
+    container.add_item(ui.TextDisplay("## Report"))
+
+    container.add_item(ui.Separator())
+
+    container.add_item(ui.TextDisplay(f"### 返信内容\n{self.reply_input.value}"))
+
+    container.add_item(ui.TextDisplay(f"### 添付ファイル"))
+    if self.file_input.values:
+      file = await self.file_input.values[0].to_file()
+      container.add_item(ui.File(file))
     else:
-      button_bool = False
+      container.add_item(ui.TextDisplay("なし"))
 
-    view = discord.ui.View()
-    button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
-    button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=button_bool)
-    button_2 = discord.ui.Button(emoji=EMOJI_DICT["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
-    view.add_item(button_0)
-    view.add_item(button_1)
-    view.add_item(button_2)
+    view.add_item(container)
+    view.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
+    view.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=self.canSend))
 
-    await interaction.followup.edit_message(self.msg.id, embed=self.msg.embeds[0], view=view)
+    await interaction.followup.edit_message(self.msg.id, view=view)
 
 
 
