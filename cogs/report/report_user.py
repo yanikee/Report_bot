@@ -132,53 +132,61 @@ class ReplyToReply(commands.Cog):
       embed.set_footer(text="スレッドがアーカイブされていたため通知されました")
       await channel.send(embed=embed)
 
-    # embedの定義
-    embed=discord.Embed(
-      title="ユーザーからの返信",
-      description=message.content,
-      color=0xffe7ab,
-    )
 
-    # ユーザーからの返信を送信
-    try:
-      await report_thread.send(embed=embed)
-    except Exception:
-      return
-
-    # 返信ボタンが設置されてたら削除
+    panel_msg = None
     async for msg in report_thread.history(limit=5):
       if msg.components:
+        panel_msg = msg
         await msg.delete()
         break
+
 
     view = ui.LayoutView()
 
     container = ui.Container(accent_color=0xffe7ab)
     container.add_item(ui.TextDisplay("## Report"))
-
     container.add_item(ui.Separator())
+    container.add_item(ui.TextDisplay(f"### ユーザーからの返信\n{message.content}"))
 
-    container.add_item(ui.TextDisplay(f"### 返信内容\n下のボタンから編集してください。"))
-
-    container.add_item(ui.TextDisplay(f"### 添付ファイル"))
+    files = []
     if attachments := message.attachments:
+      container.add_item(ui.TextDisplay("### 添付ファイル"))
       for attachment in attachments:
-        container.add_item(ui.File(await attachment.to_file()))
-    else:
-      container.add_item(ui.TextDisplay("なし"))
+        file_data = await attachment.to_file()
+        files.append(file_data)
+        container.add_item(ui.File(media=file_data))
 
     view.add_item(container)
-    view.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
-    view.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=self.canSend))
 
-
-    # 返信用のbuttonを送信
     try:
-      await report_thread.send(view=view)
+      await report_thread.send(view=view, files=files)
     except Exception:
       return
 
-    # リアクションを付ける
+
+    if panel_msg:
+      view = ui.LayoutView().from_message(panel_msg)
+
+    else:
+      view = ui.LayoutView()
+
+      container = ui.Container(accent_color=0x95FFA1)
+      container.add_item(ui.TextDisplay("### 返信内容\n下のボタンから編集してください。"))
+      container.add_item(ui.TextDisplay("### 添付ファイル\nなし"))
+      view.add_item(container)
+
+      row = ui.ActionRow()
+      row.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
+      row.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=True))
+      view.add_item(row)
+
+
+    try:
+      await report_thread.send(view=view)
+    except Exception:
+      await message.add_reaction("✖")
+      return
+
     await message.add_reaction("✅")
 
 
