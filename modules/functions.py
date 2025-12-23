@@ -1,4 +1,4 @@
-from discord import ui
+from discord import ui, components
 import discord
 
 import datetime
@@ -30,7 +30,7 @@ def user_cooldown(user_id: int, user_cooldowns: dict, rate:int=30):
 
 
 
-async def get_reply_view(content: str | None = None, values: list[discord.Attachment | discord.File] | None = None) -> tuple[ui.LayoutView, list[discord.File]]:
+async def create_reply_view(content: str | None = None, values: list[discord.Attachment | discord.File] | None = None) -> tuple[ui.LayoutView, list[discord.File]]:
   view = ui.LayoutView()
 
   container = ui.Container(accent_color=0x95FFA1)
@@ -75,3 +75,18 @@ async def get_reply_view(content: str | None = None, values: list[discord.Attach
   return view, files
 
 
+def get_reply_view_data(msg: discord.Message) -> tuple[str, list[discord.UnfurledMediaItem]]:
+  content: str = ""
+  files: list[discord.UnfurledMediaItem] = []
+
+  if isinstance(msg.components[0], components.Container):
+    children = msg.components[0].children
+
+    for child in children:
+      if isinstance(child, components.TextDisplay) and child.id == 999:
+        content = child.content
+
+      if isinstance(child, components.FileComponent):
+        files.append(child.media)
+
+  return content, files

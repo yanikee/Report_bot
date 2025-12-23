@@ -95,7 +95,7 @@ class ReportButton(ui.LayoutView):
         await interaction.user.send("テストメッセージ", delete_after=0.1)
       except Exception:
         msg = "botからあなたのDMにメッセージを送信できませんでした。\n設定を確認してください。"
-        await error.send_error(interaction, msg)
+        await error.send_error(msg, interaction=interaction)
 
       await self.do_report(interaction, self.message, None)
 

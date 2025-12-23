@@ -4,7 +4,7 @@ import discord
 
 import re
 
-from modules.functions import user_cooldown, get_reply_view
+from modules.functions import user_cooldown, create_reply_view
 from modules.db import DB
 from const import EMOJI_DICT
 
@@ -168,8 +168,7 @@ class ReplyToReply(commands.Cog):
       view = ui.LayoutView().from_message(panel_msg)
 
     else:
-      view = await get_reply_view()
-
+      view, _ = await create_reply_view()
 
     try:
       await report_thread.send(view=view)

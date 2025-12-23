@@ -2,7 +2,7 @@ import discord
 
 
 
-async def send_error(interaction: discord.Interaction, msg: str, followup: bool = False):
+async def send_error(msg: str, interaction: discord.Interaction | None = None, channel: discord.TextChannel | discord.Thread | None = None, followup: bool = False):
   description = f"{msg}\n\n- サポートサーバーは[こちら](https://discord.gg/djQHvM6PtE)"
 
   embed=discord.Embed(
@@ -11,7 +11,11 @@ async def send_error(interaction: discord.Interaction, msg: str, followup: bool 
     color=0xF2E700,
   )
 
-  if followup:
-    await interaction.followup.send(embed=embed, ephemeral=True)
-  else:
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+  if interaction:
+    if followup:
+      await interaction.followup.send(embed=embed, ephemeral=True)
+    else:
+      await interaction.response.send_message(embed=embed, ephemeral=True)
+
+  if channel:
+    await channel.send(embed=embed)

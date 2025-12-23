@@ -10,7 +10,7 @@ import datetime
 
 from modules import error
 from modules.db import DB
-from modules.functions import get_reply_view
+from modules.functions import create_reply_view, get_reply_view_data
 from const import EMOJI_DICT
 
 
@@ -28,6 +28,10 @@ class ReportGuildAdmin(commands.Cog):
 
     guild = interaction.guild
     if not guild:
+      return
+
+    channel = interaction.channel
+    if not channel:
       return
 
     custom_id = data.get("custom_id")
@@ -52,7 +56,7 @@ class ReportGuildAdmin(commands.Cog):
       # buttonの削除
       await message.edit(view=None)
 
-      view, files = await get_reply_view()
+      view, files = await create_reply_view()
 
       await thread.send(view=view)
 
@@ -66,72 +70,59 @@ class ReportGuildAdmin(commands.Cog):
 
 
     elif custom_id == "report_send":
-      # 報告者を取得
-      async with aiofiles.open(path, encoding='utf-8', mode="r") as f:
-        contents = await f.read()
-      private_dict = json.loads(contents)
-      reporter_id = private_dict.get(str(interaction.channel.id))
-
-      # reporter_idがNoneの場合->return
-      if not reporter_id:
-        e = f"\n[ERROR[3-1-02]]{datetime.datetime.now()}\n- GUILD_ID:{interaction.guild.id}\n- CHANNEL_ID:{interaction.channel.id}\nReporter_id was not found\n"
-        print(e)
-        embed=await error.generate(code="3-1-02")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+      if not isinstance(channel, discord.Thread):
         return
 
-      try:
-        reporter = await interaction.guild.fetch_member(reporter_id)
-      except Exception:
-        embed=await error.generate(code="3-1-03")
-        await interaction.response.send_message(embed=embed)
+      guild_data = await self.db.get_guild_settings(guild.id)
+      if not guild_data:
         return
+
+      thread_data = await self.db.get_thread(channel.id)
+      if not thread_data:
+        return
+
+      user_id = thread_data["user_id"]
+
+      user = self.bot.get_user(user_id)
+      if not user:
+        try:
+          user = await self.bot.fetch_user(user_id)
+        except Exception:
+          return
 
       # embedを定義
+      content, _ = get_reply_view_data(message)
       embed = discord.Embed(
-        url=interaction.channel.jump_url,
+        url=channel.jump_url,
         description="## 匿名Report\n"
-                    f"あなたの報告に、『{interaction.guild.name}』の管理者から返信が届きました。\n"
+                    f"あなたの報告に、『{guild.name}』の管理者から返信が届きました。\n"
                     f"- __**このメッセージに返信**__(右クリック→返信)すると、このサーバーの管理者に届きます。\n\n"
-                    f"## 返信内容\n{interaction.message.embeds[0].description}",
+                    f"## 返信内容\n{content}",
         color=0xffe7ab,
       )
       embed.set_footer(
-        text=f"匿名Report | {interaction.guild.name}",
-        icon_url=interaction.guild.icon.replace(format='png').url if interaction.guild.icon else None,
+        text=f"匿名Report | {guild.name}",
+        icon_url=guild.icon.replace(format='png').url if guild.icon else None,
       )
 
       # 返信を送信する
       try:
-        await reporter.send(embed=embed)
-      except discord.errors.Forbidden:
-        embed=await error.generate(code="3-1-04")
-        await interaction.response.send_message(embed=embed)
-        return
-      except Exception as e:
-        e = f"\n[ERROR[3-1-05]]{datetime.datetime.now()}\n- GUILD_ID:{interaction.guild.id}\n{e}\n"
-        print(e)
-        embed=await error.generate(code="3-1-05")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await user.send(embed=embed)
+      except Exception:
+        msg = "送信できませんでした"
+        await error.send_error(msg, channel=channel)
         return
 
-      # 返信パネルを編集する
-      embed = interaction.message.embeds[0]
-      embed.set_author(
-        name=f"返信：{interaction.user.display_name}",
-        icon_url=interaction.user.display_avatar.url if interaction.user.display_avatar else None,
-      )
-      await interaction.response.edit_message(embed=embed, view=None)
-      await interaction.message.add_reaction("✅")
+      await message.add_reaction("✅")
 
       # 返信したユーザーをスレッドに参加させる
-      await interaction.channel.add_user(interaction.user)
+      await channel.add_user(interaction.user)
 
       # 追加返信ボタン設置
       view = discord.ui.View()
       button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
-      await interaction.channel.send(view=view)
+      await channel.send(view=view)
 
 
     # 追加返信ボタンが押されたときの処理
@@ -156,13 +147,16 @@ class ReportGuildAdmin(commands.Cog):
 
     # もう返信しないボタンが押されたときの処理
     elif custom_id == "report_cancel":
-      await interaction.message.delete()
+      if not isinstance(channel, discord.Thread):
+        return
+
+      await message.delete()
 
       # 追加返信ボタン設置
       view = discord.ui.View()
       button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
-      await interaction.channel.send(view=view)
+      await channel.send(view=view)
 
 
 class EditReplyModal(ui.Modal):
@@ -174,21 +168,14 @@ class EditReplyModal(ui.Modal):
     default: str | None = None
     self.files: list[discord.UnfurledMediaItem] = []
 
-    if isinstance(msg.components[0], components.Container):
-      children = msg.components[0].children
+    content, self.files = get_reply_view_data(msg)
 
-      for child in children:
-        if isinstance(child, components.TextDisplay) and child.id == 999:
-          if "下のボタンから編集してください。" in child.content:
-            default = None
-            self.disabled = True
-          else:
-            default = child.content
-            self.disabled = False
-
-        if isinstance(child, components.FileComponent):
-          self.files.append(child.media)
-
+    if "下のボタンから編集してください。" in content:
+      default = None
+      self.disabled = True
+    else:
+      default = content
+      self.disabled = False
 
     self.reply_input = discord.ui.TextInput(
       style=discord.TextStyle.long,
@@ -204,10 +191,9 @@ class EditReplyModal(ui.Modal):
 
 
   async def on_submit(self, interaction: discord.Interaction):
-
     if len(self.files + self.file_input.values) > 3:
       msg = "一度に添付できるファイルは3件までです"
-      await error.send_error(interaction, msg)
+      await error.send_error(msg, interaction=interaction)
       return
 
     existing_files: list[discord.File] = []
@@ -226,12 +212,12 @@ class EditReplyModal(ui.Modal):
 
     values = existing_files + self.file_input.values
 
-    view, files = await get_reply_view(self.reply_input.value, values)
+    view, files = await create_reply_view(self.reply_input.value, values)
 
     filenames = [file.filename for file in files]
     if len(filenames) != len(set(filenames)):
       msg = "同一ファイルが含まれています"
-      await error.send_error(interaction, msg, True)
+      await error.send_error(msg, interaction=interaction, followup=True)
       return
 
     await interaction.followup.edit_message(self.msg.id, view=view, attachments=files)

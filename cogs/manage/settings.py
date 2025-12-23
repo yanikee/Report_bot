@@ -211,7 +211,7 @@ class Settings(commands.Cog):
         channel = await guild.fetch_channel(channel_id)
       except Exception:
         msg = f"<#{channel_id}>\nこのチャンネルは選択できません。\nbotに正しい権限があるか確認してください。"
-        await send_error(interaction, msg)
+        await send_error(msg, interaction=interaction)
         return None
 
     if not isinstance(channel, discord.TextChannel):
@@ -220,7 +220,7 @@ class Settings(commands.Cog):
     my_permission = channel.permissions_for(guild.me)
     if not all([my_permission.read_messages, my_permission.send_messages, my_permission.create_public_threads]):
       msg = f"<#{channel_id}>\nこのチャンネルは選択できません。\nbotに正しい権限があるか確認してください。"
-      await send_error(interaction, msg, True)
+      await send_error(msg, interaction=interaction, followup=True)
       return None
 
     return [channel]
