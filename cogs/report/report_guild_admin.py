@@ -52,17 +52,7 @@ class ReportGuildAdmin(commands.Cog):
       # buttonの削除
       await message.edit(view=None)
 
-      view = ui.LayoutView()
-
-      container = ui.Container(accent_color=0x95FFA1)
-      container.add_item(ui.TextDisplay("### 返信内容\n下のボタンから編集してください。"))
-      container.add_item(ui.TextDisplay("### 添付ファイル\nなし"))
-      view.add_item(container)
-
-      row = ui.ActionRow()
-      row.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
-      row.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=True))
-      view.add_item(row)
+      view, files = await get_reply_view()
 
       await thread.send(view=view)
 
