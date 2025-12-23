@@ -204,15 +204,16 @@ class EditReplyModal(ui.Modal):
 
 
   async def on_submit(self, interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True)
 
     if len(self.files + self.file_input.values) > 3:
       msg = "一度に添付できるファイルは3件までです"
-      await error.send_error(interaction, msg, followup=True)
+      await error.send_error(interaction, msg)
       return
 
     existing_files: list[discord.File] = []
     if self.files:
+      await interaction.response.defer(thinking=True, ephemeral=True)
+
       async with aiohttp.ClientSession() as session:
         for item in self.files:
           async with session.get(item.url) as resp:
@@ -220,12 +221,23 @@ class EditReplyModal(ui.Modal):
             filename = item.url.split('/')[-1].split('?')[0]
             existing_files.append(discord.File(io.BytesIO(data), filename=filename))
 
+    else:
+      await interaction.response.defer()
+
     values = existing_files + self.file_input.values
 
     view, files = await get_reply_view(self.reply_input.value, values)
 
+    filenames = [file.filename for file in files]
+    if len(filenames) != len(set(filenames)):
+      msg = "同一ファイルが含まれています"
+      await error.send_error(interaction, msg, True)
+      return
+
     await interaction.followup.edit_message(self.msg.id, view=view, attachments=files)
-    await interaction.delete_original_response()
+
+    if self.files:
+      await interaction.delete_original_response()
 
 
 async def setup(bot):
