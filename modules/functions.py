@@ -1,6 +1,8 @@
 from discord import ui, components
 import discord
 
+import aiohttp
+import io
 import datetime
 from const import EMOJI_DICT
 
@@ -90,3 +92,16 @@ def get_reply_view_data(msg: discord.Message) -> tuple[str, list[discord.Unfurle
         files.append(child.media)
 
   return content, files
+
+
+
+async def get_files(medias: list[discord.UnfurledMediaItem]) -> list[discord.File]:
+  files: list[discord.File] = []
+  async with aiohttp.ClientSession() as session:
+    for item in medias:
+      async with session.get(item.url) as resp:
+        data = await resp.read()
+        filename = item.url.split('/')[-1].split('?')[0]
+        files.append(discord.File(io.BytesIO(data), filename=filename))
+
+  return files

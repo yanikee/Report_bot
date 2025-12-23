@@ -10,7 +10,7 @@ import datetime
 
 from modules import error
 from modules.db import DB
-from modules.functions import create_reply_view, get_reply_view_data
+from modules.functions import create_reply_view, get_reply_view_data, get_files
 from const import EMOJI_DICT
 
 
@@ -91,7 +91,9 @@ class ReportGuildAdmin(commands.Cog):
           return
 
       # embedを定義
-      content, _ = get_reply_view_data(message)
+      content, medias = get_reply_view_data(message)
+      files = await get_files(medias)
+
       embed = discord.Embed(
         url=channel.jump_url,
         description="## 匿名Report\n"
@@ -107,7 +109,7 @@ class ReportGuildAdmin(commands.Cog):
 
       # 返信を送信する
       try:
-        await user.send(embed=embed)
+        await user.send(embed=embed, files=files)
       except Exception:
         msg = "送信できませんでした"
         await error.send_error(msg, channel=channel)
@@ -200,12 +202,7 @@ class EditReplyModal(ui.Modal):
     if self.files:
       await interaction.response.defer(thinking=True, ephemeral=True)
 
-      async with aiohttp.ClientSession() as session:
-        for item in self.files:
-          async with session.get(item.url) as resp:
-            data = await resp.read()
-            filename = item.url.split('/')[-1].split('?')[0]
-            existing_files.append(discord.File(io.BytesIO(data), filename=filename))
+      existing_files = await get_files(self.files)
 
     else:
       await interaction.response.defer()
