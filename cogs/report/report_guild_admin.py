@@ -69,6 +69,22 @@ class ReportGuildAdmin(commands.Cog):
       await interaction.response.send_modal(modal)
 
 
+    elif custom_id == "report_file_delete":
+      values = data.get("values")
+      if not values:
+        return
+
+      await interaction.response.defer(thinking=True, ephemeral=True)
+
+      file_name = values[0]
+      content, medias = get_reply_view_data(message)
+      existing_files = [f for f in (await get_files(medias)) if file_name not in f.filename]
+      view, files = await create_reply_view(content, list(existing_files))
+      await interaction.followup.edit_message(message.id, view=view, attachments=files)
+      await interaction.delete_original_response()
+      return
+
+
     elif custom_id == "report_send":
       if not isinstance(channel, discord.Thread):
         return
