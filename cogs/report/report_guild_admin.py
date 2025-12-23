@@ -1,9 +1,10 @@
 from discord.ext import commands
-from discord import ui
+from discord import ui, components
 import discord
 
-import os
+import io
 import json
+import aiohttp
 import aiofiles
 import datetime
 
@@ -180,15 +181,24 @@ class EditReplyModal(ui.Modal):
     self.bot = bot
     self.msg = msg
 
-    content = msg.components[0].children[0].content.replace("### 返信内容", "") #type: ignore
+    default: str | None = None
+    self.files: list[discord.UnfurledMediaItem] = []
 
-    # modalのdefaultを定義
-    if "下のボタンから編集してください。" in content:
-      default = None
-      self.disabled = True
-    else:
-      default = content
-      self.disabled = False
+    if isinstance(msg.components[0], components.Container):
+      children = msg.components[0].children
+
+      for child in children:
+        if isinstance(child, components.TextDisplay) and child.id == 999:
+          if "下のボタンから編集してください。" in child.content:
+            default = None
+            self.disabled = True
+          else:
+            default = child.content
+            self.disabled = False
+
+        if isinstance(child, components.FileComponent):
+          self.files.append(child.media)
+
 
     self.reply_input = discord.ui.TextInput(
       style=discord.TextStyle.long,
@@ -196,19 +206,36 @@ class EditReplyModal(ui.Modal):
       required=False,
     )
     self.file_input = ui.FileUpload(
-      required=False
+      required=False,
+      max_values=3
     )
     self.add_item(ui.Label(text="返信内容", component=self.reply_input))
     self.add_item(ui.Label(text="添付ファイル", component=self.file_input))
 
 
   async def on_submit(self, interaction: discord.Interaction):
-    await interaction.response.defer()
+    await interaction.response.defer(thinking=True)
 
-    view = await get_reply_view(self.reply_input.value, self.file_input.values)
+    if len(self.files + self.file_input.values) > 3:
+      msg = "一度に添付できるファイルは3件までです"
+      await error.send_error(interaction, msg, followup=True)
+      return
 
-    await interaction.followup.edit_message(self.msg.id, view=view)
+    existing_files: list[discord.File] = []
+    if self.files:
+      async with aiohttp.ClientSession() as session:
+        for item in self.files:
+          async with session.get(item.url) as resp:
+            data = await resp.read()
+            filename = item.url.split('/')[-1].split('?')[0]
+            existing_files.append(discord.File(io.BytesIO(data), filename=filename))
 
+    values = existing_files + self.file_input.values
+
+    view, files = await get_reply_view(self.reply_input.value, values)
+
+    await interaction.followup.edit_message(self.msg.id, view=view, attachments=files)
+    await interaction.delete_original_response()
 
 
 async def setup(bot):

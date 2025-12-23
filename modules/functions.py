@@ -30,28 +30,48 @@ def user_cooldown(user_id: int, user_cooldowns: dict, rate:int=30):
 
 
 
-async def get_reply_view(content: str | None = None, values: list[discord.Attachment] | None = None) -> ui.LayoutView:
+async def get_reply_view(content: str | None = None, values: list[discord.Attachment | discord.File] | None = None) -> tuple[ui.LayoutView, list[discord.File]]:
   view = ui.LayoutView()
 
   container = ui.Container(accent_color=0x95FFA1)
   container.add_item(ui.TextDisplay("### 返信内容"))
   if content:
-    container.add_item(ui.TextDisplay(content))
+    container.add_item(ui.TextDisplay(content, id=999))
     disabled = False
   else:
-    container.add_item(ui.TextDisplay("下のボタンから編集してください。"))
+    container.add_item(ui.TextDisplay("下のボタンから編集してください。", id=999))
     disabled = True
-  view.add_item(container)
 
+  files: list[discord.File] = []
   if values:
     container.add_item(ui.TextDisplay(f"### 添付ファイル"))
-    for file in values:
-      container.add_item(ui.File(await file.to_file()))
+    for value in values:
+      if isinstance(value, discord.Attachment):
+        file = await value.to_file()
+      else:
+        file = value
 
+      files.append(file)
+      container.add_item(ui.File(file))
+
+    row = ui.ActionRow()
+    row.add_item(ui.Select(
+      custom_id="report_file_delete",
+      placeholder="削除したいファイルを選択",
+      required=False,
+      options=[discord.SelectOption(
+        label=file.filename,
+      ) for file in files]
+    ))
+    container.add_item(row)
+
+  view.add_item(container)
 
   row = ui.ActionRow()
   row.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
   row.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=disabled))
   view.add_item(row)
 
-  return view
+  return view, files
+
+
