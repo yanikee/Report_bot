@@ -6,8 +6,8 @@ import json
 import aiofiles
 import datetime
 
-from modules import error
-from modules import check
+from modules import error, functions
+from const import EMOJI_DICT
 
 
 class PticketReplyToReply(commands.Cog):
@@ -47,13 +47,13 @@ class PticketReplyToReply(commands.Cog):
       return
 
     # guild_block
-    embed = await check.is_guild_block(bot=self.bot, guild=None, user_id=None, message=message, referenced_message=msg)
+    embed = await functions.is_guild_block(bot=self.bot, guild=None, user_id=None, message=message, referenced_message=msg)
     if embed:
       await message.reply(embed=embed)
       return
 
     # cooldown
-    embed, self.user_cooldowns = check.user_cooldown(message.author.id, self.user_cooldowns)
+    embed, self.user_cooldowns = functions.user_cooldown(message.author.id, self.user_cooldowns)
     if embed:
       await message.add_reaction("❌")
       embed.set_footer(text="このメッセージは15秒後に削除されます。")
@@ -131,10 +131,10 @@ class PticketReplyToReply(commands.Cog):
       )
 
     view = discord.ui.View()
-    button_0 = discord.ui.Button(emoji=self.bot.emojis_dict["edit"], label="編集", custom_id=f"pticket_edit_reply", style=discord.ButtonStyle.primary, row=0)
-    button_1 = discord.ui.Button(emoji=self.bot.emojis_dict["send"], label="送信", custom_id=f"pticket_send", style=discord.ButtonStyle.red, row=0, disabled=True)
-    button_2 = discord.ui.Button(emoji=self.bot.emojis_dict["upload_file"], label="ファイル送信", custom_id=f"pticket_send_file", style=discord.ButtonStyle.green, row=1)
-    button_3 = discord.ui.Button(emoji=self.bot.emojis_dict["delete"], label="もう返信しない", custom_id=f"pticket_cancel", style=discord.ButtonStyle.gray, row=2)
+    button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"pticket_edit_reply", style=discord.ButtonStyle.primary, row=0)
+    button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"pticket_send", style=discord.ButtonStyle.red, row=0, disabled=True)
+    button_2 = discord.ui.Button(emoji=EMOJI_DICT["upload_file"], label="ファイル送信", custom_id=f"pticket_send_file", style=discord.ButtonStyle.green, row=1)
+    button_3 = discord.ui.Button(emoji=EMOJI_DICT["delete"], label="もう返信しない", custom_id=f"pticket_cancel", style=discord.ButtonStyle.gray, row=2)
     view.add_item(button_0)
     view.add_item(button_1)
     view.add_item(button_2)

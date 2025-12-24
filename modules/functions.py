@@ -1,0 +1,109 @@
+from discord import ui, components
+import discord
+
+import aiohttp
+import io
+import datetime
+from const import EMOJI_DICT
+
+
+
+def user_cooldown(user_id: int, user_cooldowns: dict, rate:int=30):
+  current_time = int(datetime.datetime.now().timestamp())
+
+  if str(user_id) in user_cooldowns:
+    retry_after = user_cooldowns[str(user_id)] - current_time
+
+    if retry_after > 0:
+      retry_minute = int(retry_after) // 60
+      retry_second = int(retry_after) % 60
+      embed = discord.Embed(
+        title=f"Cooldown",
+        description=f"クールダウン中です。\nあと{retry_minute}分{retry_second}秒お待ち下さい。",
+        color=0xF2E700,
+      )
+      return embed, user_cooldowns
+
+    else:
+      user_cooldowns.pop(str(user_id))
+
+  user_cooldowns[str(user_id)] = current_time + rate
+  return None, user_cooldowns
+
+
+
+async def create_reply_view(content: str | None = None, values: list[discord.Attachment | discord.File] | None = None) -> tuple[ui.LayoutView, list[discord.File]]:
+  view = ui.LayoutView()
+
+  container = ui.Container(accent_color=0x95FFA1)
+  container.add_item(ui.TextDisplay("## 返信内容"))
+  if content:
+    container.add_item(ui.TextDisplay(content, id=999))
+    disabled = False
+  else:
+    container.add_item(ui.TextDisplay("下のボタンから編集してください。", id=999))
+    disabled = True
+
+  files: list[discord.File] = []
+  if values:
+    container.add_item(ui.TextDisplay(f"## 添付ファイル"))
+    for value in values:
+      if isinstance(value, discord.Attachment):
+        file = await value.to_file()
+      else:
+        file = value
+
+      files.append(file)
+      container.add_item(ui.File(file))
+
+    row = ui.ActionRow()
+    row.add_item(ui.Select(
+      custom_id="report_file_delete",
+      placeholder="削除したいファイルを選択",
+      required=False,
+      options=[discord.SelectOption(
+        label=file.filename,
+      ) for file in files]
+    ))
+    container.add_item(row)
+
+  view.add_item(container)
+
+  row = ui.ActionRow()
+  row.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
+  row.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=disabled))
+  if not content and not files:
+    row.add_item(ui.Button(emoji=EMOJI_DICT["delete"], label="もう返信しない", custom_id=f"report_cancel", style=discord.ButtonStyle.gray))
+  view.add_item(row)
+
+  return view, files
+
+
+def get_reply_view_data(msg: discord.Message) -> tuple[str, list[discord.UnfurledMediaItem]]:
+  content: str = ""
+  files: list[discord.UnfurledMediaItem] = []
+
+  if isinstance(msg.components[0], components.Container):
+    children = msg.components[0].children
+
+    for child in children:
+      if isinstance(child, components.TextDisplay) and child.id == 999:
+        content = child.content
+
+      if isinstance(child, components.FileComponent):
+        files.append(child.media)
+
+  return content, files
+
+
+
+async def get_files(medias: list[discord.UnfurledMediaItem]) -> list[discord.File]:
+  files: list[discord.File] = []
+  async with aiohttp.ClientSession() as session:
+    for item in medias:
+      async with session.get(item.url) as resp:
+        data = await resp.read()
+        filename = item.url.split('/')[-1].split('?')[0]
+        files.append(discord.File(io.BytesIO(data), filename=filename))
+
+  return files
