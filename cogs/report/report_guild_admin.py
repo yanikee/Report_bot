@@ -1,12 +1,6 @@
 from discord.ext import commands
-from discord import ui, components
+from discord import ui
 import discord
-
-import io
-import json
-import aiohttp
-import aiofiles
-import datetime
 
 from modules import error
 from modules.db import DB
@@ -86,6 +80,8 @@ class ReportGuildAdmin(commands.Cog):
 
 
     elif custom_id == "report_send":
+      await interaction.response.defer(thinking=True)
+
       if not isinstance(channel, discord.Thread):
         return
 
@@ -106,26 +102,44 @@ class ReportGuildAdmin(commands.Cog):
         except Exception:
           return
 
-      # embedを定義
       content, medias = get_reply_view_data(message)
       files = await get_files(medias)
 
-      embed = discord.Embed(
-        url=channel.jump_url,
-        description="## 匿名Report\n"
-                    f"あなたの報告に、『{guild.name}』の管理者から返信が届きました。\n"
-                    f"- __**このメッセージに返信**__(右クリック→返信)すると、このサーバーの管理者に届きます。\n\n"
-                    f"## 返信内容\n{content}",
-        color=0xffe7ab,
-      )
-      embed.set_footer(
-        text=f"匿名Report | {guild.name}",
-        icon_url=guild.icon.replace(format='png').url if guild.icon else None,
-      )
+      view = ui.LayoutView()
+
+      container = ui.Container(accent_color=0xffe7ab)
+      if guild.icon:
+        thumbnail = ui.Thumbnail(guild.icon.url, description=f"{channel.id}/{message.id}")
+        section = ui.Section(accessory=thumbnail)
+        section.add_item(ui.TextDisplay("# 匿名Report"))
+        section.add_item(ui.TextDisplay(f"- **{guild.name}**の管理者からメッセージが届きました"))
+        section.add_item(ui.TextDisplay("- __**このメッセージに返信**__すると管理者に届きます"))
+        container.add_item(section)
+
+      else:
+        container.add_item(ui.TextDisplay("# 匿名Report"))
+        container.add_item(ui.TextDisplay(f"- {guild.name}の管理者から返信が届きました"))
+        container.add_item(ui.TextDisplay("- __**このメッセージに返信**__すると、管理者に届きます"))
+
+      container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+      container.add_item(ui.TextDisplay("## 返信内容"))
+      container.add_item(ui.TextDisplay(content))
+
+      if files:
+        container.add_item(ui.TextDisplay("## 添付ファイル"))
+        for file in files:
+          container.add_item(ui.File(file))
+
+      container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+      container.add_item(ui.TextDisplay(f"匿名Report｜{guild.name}"))
+
+      view.add_item(container)
 
       # 返信を送信する
       try:
-        await user.send(embed=embed, files=files)
+        await user.send(view=view, files=files)
       except Exception:
         msg = "送信できませんでした"
         await error.send_error(msg, channel=channel)
@@ -136,6 +150,8 @@ class ReportGuildAdmin(commands.Cog):
       # 返信したユーザーをスレッドに参加させる
       await channel.add_user(interaction.user)
 
+      await interaction.delete_original_response()
+
       # 追加返信ボタン設置
       view = discord.ui.View()
       button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
@@ -145,22 +161,9 @@ class ReportGuildAdmin(commands.Cog):
 
     # 追加返信ボタンが押されたときの処理
     elif custom_id == "report_add_reply" or custom_id == "add_reply":
-      embed=discord.Embed(
-        title="返信内容",
-        description="下のボタンから編集してください。",
-        color=0x95FFA1,
-      )
-      view = discord.ui.View()
-      button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
-      button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=True)
-      button_2 = discord.ui.Button(emoji=EMOJI_DICT["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
-      button_3 = discord.ui.Button(emoji=EMOJI_DICT["delete"], label="もう返信しない", custom_id=f"report_cancel", style=discord.ButtonStyle.gray, row=2)
-      view.add_item(button_0)
-      view.add_item(button_1)
-      view.add_item(button_2)
-      view.add_item(button_3)
+      view, _ = await create_reply_view()
 
-      await interaction.response.edit_message(embed=embed, view=view)
+      await interaction.response.edit_message(view=view)
 
 
     # もう返信しないボタンが押されたときの処理
