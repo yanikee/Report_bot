@@ -6,6 +6,7 @@ import re
 
 from modules.functions import user_cooldown, create_reply_view
 from modules.db import DB
+from modules import error
 
 
 
@@ -61,7 +62,6 @@ class ReplyToReply(commands.Cog):
         return
 
       guild_id, channel_id, message_id = [int(x) for x in description.split("/")]
-      print(message_id)
 
 
     else:
@@ -91,12 +91,17 @@ class ReplyToReply(commands.Cog):
       channel_id = int(match.group(2))
       message_id = int(match.group(3))
 
+
     guild_data = await self.db.get_guild_settings(guild_id)
     if not guild_data:
+      msg = "サーバーデータが存在しません\nサーバーで`/settings`を実行してください"
+      await error.send_error(msg, channel=message.channel)
       return
 
     thread_data = await self.db.get_thread(message_id)
     if not thread_data:
+      msg = "スレッドデータが存在しませんでした"
+      await error.send_error(msg, channel=message.channel)
       return
 
     user_id = message.author.id
@@ -108,7 +113,6 @@ class ReplyToReply(commands.Cog):
     if thread_data["is_blocked"]:
       return
 
-    # cooldown
     embed, self.user_cooldowns = user_cooldown(user_id, self.user_cooldowns)
     if embed:
       await message.add_reaction("❌")
@@ -116,12 +120,13 @@ class ReplyToReply(commands.Cog):
       await message.reply(embed=embed, delete_after=15)
       return
 
-    # threadを取得
     channel = self.bot.get_channel(channel_id)
     if not channel:
       try:
         channel = await self.bot.fetch_channel(channel_id)
       except Exception:
+        msg = "チャンネルが存在しませんでした\nサーバーで`/settings`を実行してください"
+        await error.send_error(msg, channel=message.channel)
         return
 
     if not isinstance(channel, discord.TextChannel):
@@ -130,6 +135,8 @@ class ReplyToReply(commands.Cog):
     try:
       report_msg = await channel.fetch_message(message_id)
     except Exception:
+      msg = "スレッドが取得できませんでした"
+      await error.send_error(msg, channel=message.channel)
       return
 
     report_thread = report_msg.thread
@@ -141,6 +148,8 @@ class ReplyToReply(commands.Cog):
       try:
         report_thread = await report_msg.create_thread(name=name)
       except Exception:
+        msg = "スレッドが作成できませんでした"
+        await error.send_error(msg, channel=message.channel)
         return
 
     await report_msg.edit(view=None)
@@ -183,6 +192,8 @@ class ReplyToReply(commands.Cog):
     try:
       await report_thread.send(view=view, files=files)
     except Exception:
+      msg = "スレッドにメッセージを送信できませんでした"
+      await error.send_error(msg, channel=message.channel)
       return
 
 
