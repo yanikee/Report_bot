@@ -22,27 +22,31 @@ class Report(commands.Cog):
   async def cog_unload(self):
     self.bot.tree.remove_command(self.ctx_menu.name, type=self.ctx_menu.type)
 
-  async def report(self, interaction:discord.Interaction, message:discord.Message):
-    guild_id = interaction.guild_id
-    if not guild_id:
-      return
-
-    channel_id = interaction.channel_id
-    if not channel_id:
+  async def report(self, interaction: discord.Interaction, message: discord.Message):
+    guild_id, channel_id = (interaction.guild_id, interaction.channel_id)
+    if not guild_id or not channel_id:
+      msg = "サーバーで実行してください"
+      await error.send_error(msg, interaction)
       return
 
     await interaction.response.defer(ephemeral=True)
 
     guild_data = await self.db.get_guild_settings(guild_id)
     if not guild_data:
+      msg = "サーバーデータが見つかりませんでした\n`/settings`を実行してください"
+      await error.send_error(msg, interaction, followup=True)
       return
 
     is_guild_blocked = await self.db.is_guild_blocked(guild_id, interaction.user.id)
     if is_guild_blocked:
+      msg = "サーバーブロックされています"
+      await error.send_error(msg, interaction, followup=True)
       return
 
     report_channel_id = guild_data["report_channel_id"]
     if not report_channel_id:
+      msg = "`/settings`を実行してください"
+      await error.send_error(msg, interaction, followup=True)
       return
 
     embed, self.user_cooldowns = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
@@ -94,8 +98,9 @@ class ReportButton(ui.LayoutView):
       try:
         await interaction.user.send("テストメッセージ", delete_after=0.1)
       except Exception:
-        msg = "botからあなたのDMにメッセージを送信できませんでした。\n設定を確認してください。"
-        await error.send_error(msg, interaction=interaction)
+        msg = "botからあなたのDMにメッセージを送信できませんでした\n設定を確認してください"
+        await error.send_error(msg, interaction)
+        return
 
       await self.do_report(interaction, self.message, None)
 
@@ -133,6 +138,8 @@ class ReportButton(ui.LayoutView):
       try:
         channel = await self.bot.fetch_channel(report_channel_id)
       except Exception:
+        msg = "チャンネルを取得できませんでした\n`/settings`を再実行してください"
+        await error.send_error(msg, interaction)
         return
 
     if not isinstance(channel, discord.TextChannel):
@@ -147,10 +154,11 @@ class ReportButton(ui.LayoutView):
 
     try:
       report_msg = await channel.send(mention_msg, embeds=message.embeds)
-    except Exception as e:
+    except Exception:
+      msg = "レポートを送信できませんでした\n`/settings`を再実行してください"
+      await error.send_error(msg, interaction)
       return
 
-    # report理由記入modal
     modal = ReportReasonModal(interaction, message, report_msg, reporter)
     await interaction.response.send_modal(modal)
 

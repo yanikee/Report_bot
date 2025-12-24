@@ -6,7 +6,6 @@ import re
 
 from modules.functions import user_cooldown, create_reply_view
 from modules.db import DB
-from const import EMOJI_DICT
 
 
 
