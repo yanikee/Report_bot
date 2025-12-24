@@ -227,7 +227,7 @@ class ReportReasonModal(ui.Modal):
     if not self.reporter:
       embed_1=discord.Embed(
         url=self.report_msg.jump_url,
-        description=f"## 匿名Report\n### Reportしたメッセージ\n　{self.reported_msg.jump_url}\n### Report理由\n　{self.report_reason.value}",
+        description=f"# 匿名Report\n## Reportしたメッセージ\n　{self.reported_msg.jump_url}\n## Report理由\n　{self.report_reason.value}",
         color=0xffe7ab,
       )
       embed_1.set_footer(

@@ -145,18 +145,32 @@ class ReportGuildAdmin(commands.Cog):
         await error.send_error(msg, channel=channel)
         return
 
-      await message.add_reaction("✅")
+      view = ui.LayoutView()
 
-      # 返信したユーザーをスレッドに参加させる
-      await channel.add_user(interaction.user)
+      container = ui.Container(accent_color=0x95FFA1)
+      container.add_item(ui.TextDisplay(f"返信：{interaction.user.display_name}"))
+      container.add_item(ui.TextDisplay("## 返信内容"))
+      container.add_item(ui.TextDisplay(content))
+
+      if files:
+        container.add_item(ui.TextDisplay(f"## 添付ファイル"))
+        for file in files:
+          container.add_item(ui.File(file))
+
+      view.add_item(container)
+
+      await message.edit(view=view)
+      await message.add_reaction("✅")
 
       await interaction.delete_original_response()
 
-      # 追加返信ボタン設置
+      await channel.add_user(interaction.user)
+
       view = discord.ui.View()
       button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
       await channel.send(view=view)
+
 
 
     # 追加返信ボタンが押されたときの処理

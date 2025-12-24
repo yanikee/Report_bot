@@ -146,11 +146,11 @@ class ReplyToReply(commands.Cog):
     container = ui.Container(accent_color=0xffe7ab)
     container.add_item(ui.TextDisplay("## Report"))
     container.add_item(ui.Separator())
-    container.add_item(ui.TextDisplay(f"### ユーザーからの返信\n{message.content}"))
+    container.add_item(ui.TextDisplay(f"## ユーザーからの返信\n{message.content}"))
 
     files = []
     if attachments := message.attachments:
-      container.add_item(ui.TextDisplay("### 添付ファイル"))
+      container.add_item(ui.TextDisplay("## 添付ファイル"))
       for attachment in attachments:
         file_data = await attachment.to_file()
         files.append(file_data)

@@ -36,7 +36,7 @@ async def create_reply_view(content: str | None = None, values: list[discord.Att
   view = ui.LayoutView()
 
   container = ui.Container(accent_color=0x95FFA1)
-  container.add_item(ui.TextDisplay("### 返信内容"))
+  container.add_item(ui.TextDisplay("## 返信内容"))
   if content:
     container.add_item(ui.TextDisplay(content, id=999))
     disabled = False
@@ -46,7 +46,7 @@ async def create_reply_view(content: str | None = None, values: list[discord.Att
 
   files: list[discord.File] = []
   if values:
-    container.add_item(ui.TextDisplay(f"### 添付ファイル"))
+    container.add_item(ui.TextDisplay(f"## 添付ファイル"))
     for value in values:
       if isinstance(value, discord.Attachment):
         file = await value.to_file()
@@ -72,6 +72,8 @@ async def create_reply_view(content: str | None = None, values: list[discord.Att
   row = ui.ActionRow()
   row.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
   row.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=disabled))
+  if not content and not files:
+    row.add_item(ui.Button(emoji=EMOJI_DICT["delete"], label="もう返信しない", custom_id=f"report_cancel", style=discord.ButtonStyle.gray))
   view.add_item(row)
 
   return view, files
