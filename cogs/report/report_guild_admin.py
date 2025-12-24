@@ -109,7 +109,7 @@ class ReportGuildAdmin(commands.Cog):
 
       container = ui.Container(accent_color=0xffe7ab)
       if guild.icon:
-        thumbnail = ui.Thumbnail(guild.icon.url, description=f"{channel.id}/{message.id}")
+        thumbnail = ui.Thumbnail(guild.icon.url, description=f"{guild.id}/{channel.parent_id}/{channel.id}")
         section = ui.Section(accessory=thumbnail)
         section.add_item(ui.TextDisplay("# 匿名Report"))
         section.add_item(ui.TextDisplay(f"- **{guild.name}**の管理者からメッセージが届きました"))
@@ -133,7 +133,7 @@ class ReportGuildAdmin(commands.Cog):
 
       container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
-      container.add_item(ui.TextDisplay(f"匿名Report｜{guild.name}"))
+      container.add_item(ui.TextDisplay(f"匿名Report｜{guild.name}", id=998))
 
       view.add_item(container)
 

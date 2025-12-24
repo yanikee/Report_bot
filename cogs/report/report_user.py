@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord import ui
+from discord import ui, components
 import discord
 
 import re
@@ -40,33 +40,57 @@ class ReplyToReply(commands.Cog):
         return
 
     if not msg.embeds:
-      return
+      target_id = 998
+      content = next((
+        child.content
+        for comp in msg.components if isinstance(comp, components.Container)
+        for child in comp.children
+        if isinstance(child, components.TextDisplay) and child.id == target_id
+      ), "")
 
-    embed = msg.embeds[0]
-    description = embed.description
-    footer_text = embed.footer.text
-
-    if footer_text:
-      if "匿名報告 |" not in footer_text and "匿名Report |" not in footer_text:
+      if not "匿名Report｜" in content:
         return
 
-    else:
+      description = next((
+        child.accessory.description
+        for comp in msg.components if isinstance(comp, components.Container)
+        for child in comp.children if isinstance(child, components.SectionComponent)
+        if isinstance(child.accessory, components.ThumbnailComponent)
+      ), None)
+
       if not description:
         return
-      if not "------------返信内容------------" in description:
+
+      guild_id, channel_id, message_id = [int(x) for x in description.split("/")]
+      print(message_id)
+
+
+    else:
+      embed = msg.embeds[0]
+      description = embed.description
+      footer_text = embed.footer.text
+
+      if footer_text:
+        if "匿名報告 |" not in footer_text and "匿名Report |" not in footer_text:
+          return
+
+      else:
+        if not description:
+          return
+        if not "------------返信内容------------" in description:
+          return
+
+      report_msg_url = embed.url
+      if not report_msg_url:
         return
 
-    report_msg_url = embed.url
-    if not report_msg_url:
-      return
+      match = re.search(r'channels/(\d+)/(\d+)/(\d+)', report_msg_url)
+      if not match:
+        return None
 
-    match = re.search(r'channels/(\d+)/(\d+)/(\d+)', report_msg_url)
-    if not match:
-      return None
-
-    guild_id = int(match.group(1))
-    channel_id = int(match.group(2))
-    message_id = int(match.group(3))
+      guild_id = int(match.group(1))
+      channel_id = int(match.group(2))
+      message_id = int(match.group(3))
 
     guild_data = await self.db.get_guild_settings(guild_id)
     if not guild_data:
@@ -131,7 +155,6 @@ class ReplyToReply(commands.Cog):
       )
       embed.set_footer(text="スレッドがアーカイブされていたため通知されました")
       await channel.send(embed=embed)
-
 
     panel_msg = None
     async for msg in report_thread.history(limit=5):
