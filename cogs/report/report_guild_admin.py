@@ -20,23 +20,17 @@ class ReportGuildAdmin(commands.Cog):
     if not data:
       return
 
-    guild = interaction.guild
-    if not guild:
-      return
-
-    channel = interaction.channel
-    if not channel:
+    guild, channel, message = (interaction.guild, interaction.channel, interaction.message)
+    if not guild or not channel or not message:
       return
 
     custom_id = data.get("custom_id")
 
-    message = interaction.message
-    if not message:
-      return
-
     if custom_id == "report_create_thread":
       guild_data = await self.db.get_guild_settings(guild.id)
       if not guild_data:
+        msg = "サーバーデータが見つかりませんでした\n`/settings`を実行してください"
+        await error.send_error(msg, interaction)
         return
 
       guild_data["report_count"] += 1
@@ -45,22 +39,22 @@ class ReportGuildAdmin(commands.Cog):
       try:
         thread = await message.create_thread(name=name)
       except Exception:
+        msg = "スレッドを作成できませんでした\n権限を確認してください"
+        await error.send_error(msg, interaction)
         return
 
-      # buttonの削除
       await message.edit(view=None)
 
       view, files = await create_reply_view()
 
       await thread.send(view=view)
+      await interaction.delete_original_response()
+      return
 
-      await interaction.response.send_message("このスレッドから返信を行えます。", ephemeral=True)
-
-
-    # スレッド内での返信編集
     elif custom_id == "report_edit_reply":
       modal = EditReplyModal(self.bot, message)
       await interaction.response.send_modal(modal)
+      return
 
 
     elif custom_id == "report_file_delete":
@@ -87,10 +81,14 @@ class ReportGuildAdmin(commands.Cog):
 
       guild_data = await self.db.get_guild_settings(guild.id)
       if not guild_data:
+        msg = "サーバーデータが取得できませんでした"
+        await error.send_error(msg, interaction, followup=True)
         return
 
       thread_data = await self.db.get_thread(channel.id)
       if not thread_data:
+        msg = "スレッドデータが取得できませんでした"
+        await error.send_error(msg, interaction, followup=True)
         return
 
       user_id = thread_data["user_id"]
@@ -100,6 +98,8 @@ class ReportGuildAdmin(commands.Cog):
         try:
           user = await self.bot.fetch_user(user_id)
         except Exception:
+          msg = "ユーザーデータが取得できませんでした"
+          await error.send_error(msg, interaction, followup=True)
           return
 
       content, medias = get_reply_view_data(message)
@@ -108,18 +108,14 @@ class ReportGuildAdmin(commands.Cog):
       view = ui.LayoutView()
 
       container = ui.Container(accent_color=0xffe7ab)
-      if guild.icon:
-        thumbnail = ui.Thumbnail(guild.icon.url, description=f"{guild.id}/{channel.parent_id}/{channel.id}")
-        section = ui.Section(accessory=thumbnail)
-        section.add_item(ui.TextDisplay("# 匿名Report"))
-        section.add_item(ui.TextDisplay(f"- **{guild.name}**の管理者からメッセージが届きました"))
-        section.add_item(ui.TextDisplay("- __**このメッセージに返信**__すると管理者に届きます"))
-        container.add_item(section)
+      icon_url = guild.icon.url if guild.icon else "https://example.com"
 
-      else:
-        container.add_item(ui.TextDisplay("# 匿名Report"))
-        container.add_item(ui.TextDisplay(f"- {guild.name}の管理者から返信が届きました"))
-        container.add_item(ui.TextDisplay("- __**このメッセージに返信**__すると、管理者に届きます"))
+      thumbnail = ui.Thumbnail(icon_url, description=f"{guild.id}/{channel.parent_id}/{channel.id}")
+      section = ui.Section(accessory=thumbnail)
+      section.add_item(ui.TextDisplay("# 匿名Report"))
+      section.add_item(ui.TextDisplay(f"- **{guild.name}**の管理者からメッセージが届きました"))
+      section.add_item(ui.TextDisplay("- __**このメッセージに返信**__すると管理者に届きます"))
+      container.add_item(section)
 
       container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
@@ -137,7 +133,6 @@ class ReportGuildAdmin(commands.Cog):
 
       view.add_item(container)
 
-      # 返信を送信する
       try:
         await user.send(view=view, files=files)
       except Exception:
@@ -170,28 +165,27 @@ class ReportGuildAdmin(commands.Cog):
       button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
       await channel.send(view=view)
+      return
 
 
-
-    # 追加返信ボタンが押されたときの処理
     elif custom_id == "report_add_reply" or custom_id == "add_reply":
       view, _ = await create_reply_view()
 
       await interaction.response.edit_message(view=view)
+      return
 
 
-    # もう返信しないボタンが押されたときの処理
     elif custom_id == "report_cancel":
       if not isinstance(channel, discord.Thread):
         return
 
       await message.delete()
 
-      # 追加返信ボタン設置
       view = discord.ui.View()
       button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
       await channel.send(view=view)
+      return
 
 
 class EditReplyModal(ui.Modal):
@@ -228,7 +222,7 @@ class EditReplyModal(ui.Modal):
   async def on_submit(self, interaction: discord.Interaction):
     if len(self.files + self.file_input.values) > 3:
       msg = "一度に添付できるファイルは3件までです"
-      await error.send_error(msg, interaction=interaction)
+      await error.send_error(msg, interaction)
       return
 
     existing_files: list[discord.File] = []
