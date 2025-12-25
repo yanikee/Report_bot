@@ -45,7 +45,7 @@ class ReportGuildAdmin(commands.Cog):
 
       await message.edit(view=None)
 
-      view, files = await create_reply_view()
+      view, files = await create_reply_view("report")
 
       await thread.send(view=view)
       await interaction.delete_original_response()
@@ -67,7 +67,7 @@ class ReportGuildAdmin(commands.Cog):
       file_name = values[0]
       content, medias = get_reply_view_data(message)
       existing_files = [f for f in (await get_files(medias)) if file_name not in f.filename]
-      view, files = await create_reply_view(content, list(existing_files))
+      view, files = await create_reply_view("report", content, list(existing_files))
       await interaction.followup.edit_message(message.id, view=view, attachments=files)
       await interaction.delete_original_response()
       return
@@ -169,7 +169,7 @@ class ReportGuildAdmin(commands.Cog):
 
 
     elif custom_id == "report_add_reply" or custom_id == "add_reply":
-      view, _ = await create_reply_view()
+      view, _ = await create_reply_view("report")
 
       await interaction.response.edit_message(view=view)
       return
@@ -236,7 +236,7 @@ class EditReplyModal(ui.Modal):
 
     values = existing_files + self.file_input.values
 
-    view, files = await create_reply_view(self.reply_input.value, values)
+    view, files = await create_reply_view("report", self.reply_input.value, values)
 
     filenames = [file.filename for file in files]
     if len(filenames) != len(set(filenames)):

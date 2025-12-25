@@ -1,12 +1,10 @@
 from discord.ext import commands
+from discord import app_commands, ui
 import discord
 
-import os
-import json
-import aiofiles
-import datetime
-
 from modules import error, functions
+from modules.db import DB, GuildSettings
+from modules.functions import create_reply_view
 from const import EMOJI_DICT
 
 
@@ -14,193 +12,142 @@ from const import EMOJI_DICT
 class PrivateTicket(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
+    self.db = DB()
     self.user_cooldowns = {}
 
-  # private_ticketからthreadを作る
   @commands.Cog.listener()
-  async def on_interaction(self, interaction):
-    try:
-      if interaction.data["custom_id"] != "private_ticket":
-        return
-    except KeyError:
+  async def on_interaction(self, interaction: discord.Interaction):
+    if not interaction.data:
       return
 
-    path = f"data/pticket/guilds/{interaction.guild.id}.json"
-    if not os.path.exists(path):
-      embed=await error.generate(code="2-4-01")
-      await interaction.response.send_message(embed=embed, ephemeral=True)
+    custom_id = interaction.data.get("custom_id", "")
+
+    if custom_id != "private_ticket":
       return
 
-    # guild_block
-    embed = await functions.is_guild_block(bot=self.bot,guild=interaction.guild, user_id=interaction.user.id)
-    if embed:
-      await interaction.response.send_message(embed=embed, ephemeral=True)
+    guild_id, channel_id = (interaction.guild_id, interaction.channel_id)
+    if not guild_id or not channel_id:
+      msg = "サーバーで実行してください"
+      await error.send_error(msg, interaction)
       return
 
-    # cooldown
+    await interaction.response.defer(ephemeral=True)
+
+    guild_data = await self.db.get_guild_settings(guild_id)
+    if not guild_data:
+      msg = "サーバーデータが見つかりませんでした\n`/settings`を実行してください"
+      await error.send_error(msg, interaction, followup=True)
+      return
+
+    is_guild_blocked = await self.db.is_guild_blocked(guild_id, interaction.user.id)
+    if is_guild_blocked:
+      msg = "サーバーブロックされています"
+      await error.send_error(msg, interaction, followup=True)
+      return
+
+    ticket_channel_id = guild_data["ticket_channel_id"]
+    if not ticket_channel_id:
+      msg = "`/settings`を実行してください"
+      await error.send_error(msg, interaction, followup=True)
+      return
+
     embed, self.user_cooldowns = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
     if embed:
-      await interaction.response.send_message(embed=embed, ephemeral=True)
-      return
-
-    # DMにテストメッセージを送信
-    try:
-      await interaction.user.send("テストメッセージ", silent=True, delete_after=0.1)
-    except Exception:
-      embed=await error.generate(code="2-4-02")
-      await interaction.response.send_message(embed=embed, ephemeral=True)
+      await interaction.followup.send(embed=embed)
       return
 
     modal = PrivateTicketModal(self.bot)
     await interaction.response.send_modal(modal)
 
-    # 匿名Ticket buttonの絵文字を旧から新に
-    if interaction.message.components:
-      for button in interaction.message.components[0].children:
-        if isinstance(button, discord.Button):
-          if button.emoji.name == "🔖": 
-            view=discord.ui.View()
-            button_0 = discord.ui.Button(label="匿名Ticket", emoji=EMOJI_DICT["new_label"], custom_id=f"private_ticket", style=discord.ButtonStyle.primary, disabled=False, row=0)
-            view.add_item(button_0)
-            await interaction.message.edit(view=view)
 
-
-class PrivateTicketModal(discord.ui.Modal):
-  def __init__(self, bot):
+class PrivateTicketModal(ui.Modal):
+  def __init__(self, bot: commands.Bot):
     super().__init__(title=f'匿名Ticketモーダル')
     self.bot = bot
+    self.db = DB()
 
-    self.first_pticket = discord.ui.TextInput(
-      label="Ticket内容を入力",
+    self.pticket_input = ui.TextInput(
       style=discord.TextStyle.long,
       default=None,
-      placeholder="（ちなみに）\n後ほどbotのDMに、添付ファイルなどを送信できます。",
       required=True,
-      row=0
     )
-    self.add_item(self.first_pticket)
+    self.file_input = ui.FileUpload(
+      required=False,
+      max_values=3
+    )
+    self.add_item(ui.Label(text="Ticket内容", component=self.pticket_input))
+    self.add_item(ui.Label(text="添付ファイル", component=self.file_input))
+
 
   async def on_submit(self, interaction: discord.Interaction):
-    await interaction.response.defer()
-    # embedの定義
-    embed=discord.Embed(
-      title="匿名Ticket",
-      description=self.first_pticket.value,
-      color=0xc8e1ff,
-    )
+    await interaction.response.defer(thinking=True)
 
-    # pticket_channel, mention_roleの取得
-    path = f"data/pticket/guilds/{interaction.guild.id}.json"
-    async with aiofiles.open(path, encoding='utf-8', mode="r") as f:
-      contents = await f.read()
-    ticket_dict = json.loads(contents)
-    cha = interaction.guild.get_channel(ticket_dict.get("report_send_channel"))
-
-    # 匿名TicketチャンネルがNoneだった場合->return
-    if not cha:
-      embed=await error.generate(code="2-4-03")
-      await interaction.followup.send(f"### あなたの匿名Ticket内容\n　{self.first_pticket.value}", embed=embed, ephemeral=True)
+    guild_id = interaction.guild_id
+    if not guild_id:
       return
 
-    if "mention_role" in ticket_dict:
-      mention_role_id = ticket_dict["mention_role"]
-    else:
-      mention_role_id = None
+    guild_data = await self.db.get_guild_settings(guild_id)
+    if not guild_data:
+      return
 
-    # Ticketを送信
-    if mention_role_id:
-      msg = f"<@&{mention_role_id}>\n{self.bot.user.mention}"
-    else:
-      msg = self.bot.user.mention
+    ticket_channel_id = guild_data["ticket_channel_id"]
+    if not ticket_channel_id:
+      return
+
+    channel = self.bot.get_channel(ticket_channel_id)
+    if not channel:
+      try:
+        channel = await self.bot.fetch_channel(ticket_channel_id)
+      except Exception:
+        msg = "チャンネルを取得できませんでした\n`/settings`を再実行してください"
+        await error.send_error(msg, interaction, followup=True)
+        return
+
+    if not isinstance(channel, discord.TextChannel):
+      return
+
+
+    view = ui.LayoutView()
+
+    ticket_mention_role_id = guild_data["ticket_mention_role_id"]
+    if ticket_mention_role_id:
+      container = ui.Container()
+      container.add_item(ui.TextDisplay(f"<@&{ticket_mention_role_id}>"))
+      view.add_item(container)
+
+    container = ui.Container(accent_color=0xc8e1ff)
+    container.add_item(ui.TextDisplay("## 匿名Ticket"))
+    container.add_item(ui.Separator())
+    container.add_item(ui.TextDisplay(f"## Ticket内容\n{self.pticket_input.value}"))
+
+    if attachments := self.file_input.values:
+      container.add_item(ui.TextDisplay("## 添付ファイル"))
+      for attachment in attachments:
+        file = await attachment.to_file()
+        container.add_item(ui.File(media=file))
+
+    view.add_item(container)
+
+    container = ui.Container()
+    row = ui.ActionRow()
+    row.add_item(ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"pticket_create_thread", style=discord.ButtonStyle.gray))
+    container.add_item(row)
+    view.add_item(container)
+
 
     try:
-      msg = await cha.send(msg, embed=embed)
-    except Exception as e:
-      e = f"\n[ERROR[2-4-04]]{datetime.datetime.now()}\n- GUILD_ID:{interaction.guild.id}\n- CHANNEL_ID:{cha.id}\n{e}\n"
-      print(e)
-      embed=await error.generate(code="2-4-04")
-      await interaction.followup.send(f"### あなたの匿名Ticket内容\n　{self.first_pticket.value}", embed=embed, ephemeral=True)
+      pticket_msg = await channel.send(view=view)
+    except Exception:
+      msg = "匿名Ticketを送信できませんでした"
+      await error.send_error(msg, interaction)
       return
 
-    # pticket送信者idを保存{msg.id: user.id}
-    path = f"data/pticket/pticket/{interaction.guild.id}.json"
-    if os.path.exists(path):
-      async with aiofiles.open(path, encoding='utf-8', mode="r") as f:
-        contents = await f.read()
-      pticket_dict = json.loads(contents)
-    else:
-      pticket_dict = {}
-
-    pticket_dict[str(msg.id)] = interaction.user.id
-
-    async with aiofiles.open(path, mode="w") as f:
-      contents = json.dumps(pticket_dict, indent=2, ensure_ascii=False)
-      await f.write(contents)
-
-
-    # pticket_numを定義
-    path = f"data/pticket/guilds/{interaction.guild.id}.json"
-    async with aiofiles.open(path, encoding='utf-8', mode="r") as f:
-      contents = await f.read()
-    ticket_dict = json.loads(contents)
-    # 存在しない場合は作る
-    if not ticket_dict.get("pticket_num"):
-      ticket_dict["pticket_num"] = 0
-    ticket_dict["pticket_num"] += 1
-    # 保存
-    async with aiofiles.open(path, mode="w") as f:
-      contents = json.dumps(ticket_dict, indent=2, ensure_ascii=False)
-      await f.write(contents)
-
-
-    # thread作成, button送信
-    thread = await msg.create_thread(name=f"private_ticket-{str(ticket_dict['pticket_num']).zfill(4)}")
-
-    embed=discord.Embed(
-      title="返信内容",
-      description="下のボタンから編集してください。",
-      color=0x95FFA1,
+    await self.db.create_thread_entry(
+      thread_id=pticket_msg.id,
+      guild_id=guild_id,
+      user_id=interaction.user.id,
+      case_type="ticket"
     )
-    view = discord.ui.View()
-    button_0 = discord.ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"pticket_edit_reply", style=discord.ButtonStyle.primary, row=0)
-    button_1 = discord.ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"pticket_send", style=discord.ButtonStyle.red, row=0, disabled=True)
-    button_2 = discord.ui.Button(emoji=EMOJI_DICT["upload_file"], label="ファイル送信", custom_id=f"pticket_send_file", style=discord.ButtonStyle.green, row=1)
-    view.add_item(button_0)
-    view.add_item(button_1)
-    view.add_item(button_2)
-
-    await thread.send(embed=embed, view=view)
-
-    # Pticket完了確認membedを定義
-    embed_1=discord.Embed(
-      url=thread.jump_url,
-      description=f"## 匿名Ticket\n{self.first_pticket.value}",
-      color=0xc8e1ff,
-    )
-    embed_1.set_footer(
-        text=f"匿名Ticket | {interaction.guild.name}",
-        icon_url=interaction.guild.icon.replace(format='png').url if interaction.guild.icon else None,
-      )
-
-    embed_2=discord.Embed(
-      description="- ファイルを添付する場合や追加で何か送信する場合は、**このメッセージに返信**する形で送信してください。\n"
-                  "- あなたの情報(ユーザー名, idなど)が外部に漏れることは一切ありません。",
-      color=0xc8e1ff,
-    )
-
-    # Pticket完了確認embedを送信
-    try:
-      await interaction.user.send(embeds=[embed_1, embed_2])
-    except Exception as e:
-      e = f"\n[ERROR[2-4-05]]{datetime.datetime.now()}\n- USER_ID:{interaction.user.id}\n- GUILD_ID:{interaction.guild.id}\n- CHANNEL_ID:{interaction.channel.id}\n{e}\n"
-      print(e)
-      embed=await error.generate(code="2-4-05")
-      await interaction.followup.send(embed=embed, ephemeral=True)
-      return
-
-    # 完了msgを送信
-    await interaction.followup.send("サーバー管理者に匿名Ticketが送信されました。\nDMにてサーバー管理者からの返信をお待ちください。", ephemeral=True)
-
 
 
 async def setup(bot):

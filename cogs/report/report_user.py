@@ -201,7 +201,7 @@ class ReplyToReply(commands.Cog):
       view = ui.LayoutView().from_message(panel_msg)
 
     else:
-      view, _ = await create_reply_view()
+      view, _ = await create_reply_view("report")
 
     try:
       await report_thread.send(view=view)
