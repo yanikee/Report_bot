@@ -1,6 +1,7 @@
 from discord import ui, components
 import discord
 
+from typing import Literal
 import aiohttp
 import io
 import datetime
@@ -8,7 +9,7 @@ from const import EMOJI_DICT
 
 
 
-def user_cooldown(user_id: int, user_cooldowns: dict, rate:int=30):
+def user_cooldown(user_id: int, user_cooldowns: dict, rate: int=30):
   current_time = int(datetime.datetime.now().timestamp())
 
   if str(user_id) in user_cooldowns:
@@ -32,7 +33,9 @@ def user_cooldown(user_id: int, user_cooldowns: dict, rate:int=30):
 
 
 
-async def create_reply_view(content: str | None = None, values: list[discord.Attachment | discord.File] | None = None) -> tuple[ui.LayoutView, list[discord.File]]:
+async def create_reply_view(
+  case_type: Literal["report", "pticket"], content: str | None = None, values: list[discord.Attachment | discord.File] | None = None
+) -> tuple[ui.LayoutView, list[discord.File]]:
   view = ui.LayoutView()
 
   container = ui.Container(accent_color=0x95FFA1)
@@ -58,7 +61,7 @@ async def create_reply_view(content: str | None = None, values: list[discord.Att
 
     row = ui.ActionRow()
     row.add_item(ui.Select(
-      custom_id="report_file_delete",
+      custom_id=f"{case_type}_file_delete",
       placeholder="削除したいファイルを選択",
       required=False,
       options=[discord.SelectOption(
@@ -70,10 +73,10 @@ async def create_reply_view(content: str | None = None, values: list[discord.Att
   view.add_item(container)
 
   row = ui.ActionRow()
-  row.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary))
-  row.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, disabled=disabled))
+  row.add_item(ui.Button(emoji=EMOJI_DICT["edit"], label="編集", custom_id=f"{case_type}_edit_reply", style=discord.ButtonStyle.primary))
+  row.add_item(ui.Button(emoji=EMOJI_DICT["send"], label="送信", custom_id=f"{case_type}_send", style=discord.ButtonStyle.red, disabled=disabled))
   if not content and not files:
-    row.add_item(ui.Button(emoji=EMOJI_DICT["delete"], label="もう返信しない", custom_id=f"report_cancel", style=discord.ButtonStyle.gray))
+    row.add_item(ui.Button(emoji=EMOJI_DICT["delete"], label="もう返信しない", custom_id=f"{case_type}_cancel", style=discord.ButtonStyle.gray))
   view.add_item(row)
 
   return view, files
