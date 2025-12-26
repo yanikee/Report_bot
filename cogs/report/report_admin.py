@@ -9,7 +9,7 @@ from const import EMOJI_DICT
 
 
 
-class ReportGuildAdmin(commands.Cog):
+class ReportAdmin(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
     self.db = DB()
@@ -251,4 +251,4 @@ class EditReplyModal(ui.Modal):
 
 
 async def setup(bot):
-  await bot.add_cog(ReportGuildAdmin(bot))
+  await bot.add_cog(ReportAdmin(bot))
