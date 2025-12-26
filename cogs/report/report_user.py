@@ -10,7 +10,7 @@ from modules import error
 
 
 
-class ReplyToReply(commands.Cog):
+class ReportUser(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
     self.db = DB()
@@ -214,4 +214,4 @@ class ReplyToReply(commands.Cog):
 
 
 async def setup(bot):
-  await bot.add_cog(ReplyToReply(bot))
+  await bot.add_cog(ReportUser(bot))
