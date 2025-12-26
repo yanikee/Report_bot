@@ -31,8 +31,6 @@ class PrivateTicket(commands.Cog):
       await error.send_error(msg, interaction)
       return
 
-    await interaction.response.defer(ephemeral=True)
-
     guild_data = await self.db.get_guild_settings(guild_id)
     if not guild_data:
       msg = "サーバーデータが見つかりませんでした\n`/settings`を実行してください"
@@ -80,13 +78,13 @@ class PrivateTicketModal(ui.Modal):
 
 
   async def on_submit(self, interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True)
+    await interaction.response.defer(thinking=True, ephemeral=True)
 
-    guild_id = interaction.guild_id
-    if not guild_id:
+    guild = interaction.guild
+    if not guild:
       return
 
-    guild_data = await self.db.get_guild_settings(guild_id)
+    guild_data = await self.db.get_guild_settings(guild.id)
     if not guild_data:
       return
 
@@ -144,10 +142,41 @@ class PrivateTicketModal(ui.Modal):
 
     await self.db.create_thread_entry(
       thread_id=pticket_msg.id,
-      guild_id=guild_id,
+      guild_id=guild.id,
       user_id=interaction.user.id,
       case_type="ticket"
     )
+
+    view = ui.LayoutView()
+    container = ui.Container(accent_color=0xc8e1ff)
+
+    icon_url = guild.icon.url if guild.icon else "https://example.com"
+
+    thumbnail = ui.Thumbnail(icon_url, description=f"{guild.id}/{pticket_msg.channel.id}/{pticket_msg.id}")
+    section = ui.Section(accessory=thumbnail)
+    section.add_item(ui.TextDisplay("# 匿名Ticket"))
+    section.add_item(ui.TextDisplay("- ファイル添付や追伸の際には、__**このメッセージに返信**__してください。"))
+    container.add_item(section)
+
+    container.add_item(ui.Separator())
+    container.add_item(ui.TextDisplay(f"## Ticket内容\n{self.pticket_input.value}"))
+
+    if attachments := self.file_input.values:
+      container.add_item(ui.TextDisplay("## 添付ファイル"))
+      for attachment in attachments:
+        file = await attachment.to_file()
+        container.add_item(ui.File(media=file))
+
+    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+    container.add_item(ui.TextDisplay(f"匿名Ticket｜{guild.name}", id=998))
+
+    view.add_item(container)
+
+    await interaction.user.send(view=view)
+
+    await interaction.followup.send("匿名Ticketが完了しました\nDMにてサーバー管理者と会話を行うことができます")
+
 
 
 async def setup(bot):
