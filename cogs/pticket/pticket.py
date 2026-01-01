@@ -118,10 +118,12 @@ class PrivateTicketModal(ui.Modal):
     container.add_item(ui.Separator())
     container.add_item(ui.TextDisplay(f"## Ticket内容\n{self.pticket_input.value}"))
 
+    files: list[discord.File] = []
     if attachments := self.file_input.values:
       container.add_item(ui.TextDisplay("## 添付ファイル"))
       for attachment in attachments:
         file = await attachment.to_file()
+        files.append(file)
         container.add_item(ui.File(media=file))
 
     view.add_item(container)
@@ -132,12 +134,11 @@ class PrivateTicketModal(ui.Modal):
     container.add_item(row)
     view.add_item(container)
 
-
     try:
-      pticket_msg = await channel.send(view=view)
+      pticket_msg = await channel.send(view=view, files=files)
     except Exception:
       msg = "匿名Ticketを送信できませんでした"
-      await error.send_error(msg, interaction)
+      await error.send_error(msg, interaction, followup=True)
       return
 
     await self.db.create_thread_entry(
@@ -161,10 +162,9 @@ class PrivateTicketModal(ui.Modal):
     container.add_item(ui.Separator())
     container.add_item(ui.TextDisplay(f"## Ticket内容\n{self.pticket_input.value}"))
 
-    if attachments := self.file_input.values:
+    if files:
       container.add_item(ui.TextDisplay("## 添付ファイル"))
-      for attachment in attachments:
-        file = await attachment.to_file()
+      for file in files:
         container.add_item(ui.File(media=file))
 
     container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
@@ -173,7 +173,7 @@ class PrivateTicketModal(ui.Modal):
 
     view.add_item(container)
 
-    await interaction.user.send(view=view)
+    await interaction.user.send(view=view, files=files)
 
     await interaction.followup.send("匿名Ticketが完了しました\nDMにてサーバー管理者と会話を行うことができます")
 
