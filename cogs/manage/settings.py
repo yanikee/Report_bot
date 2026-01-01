@@ -190,7 +190,7 @@ class Settings(commands.Cog):
       return ""
 
     embed = discord.Embed(
-      description="## 匿名Ticket\n匿名Ticketを作成します。\nこのbotのDMを通じて匿名でサーバー管理者と会話することができます。",
+      description="## 匿名Ticket\n匿名Ticketを作成します\nこのbotのDMを通じて匿名でサーバー管理者と会話することができます",
       color=0xc8e1ff
     )
 
@@ -210,7 +210,7 @@ class Settings(commands.Cog):
       try:
         channel = await guild.fetch_channel(channel_id)
       except Exception:
-        msg = f"<#{channel_id}>\nこのチャンネルは選択できません。\nbotに正しい権限があるか確認してください。"
+        msg = f"<#{channel_id}>\nこのチャンネルは選択できません\nbotに正しい権限があるか確認してください"
         await send_error(msg, interaction=interaction)
         return None
 
@@ -219,7 +219,7 @@ class Settings(commands.Cog):
 
     my_permission = channel.permissions_for(guild.me)
     if not all([my_permission.read_messages, my_permission.send_messages, my_permission.create_public_threads]):
-      msg = f"<#{channel_id}>\nこのチャンネルは選択できません。\nbotに正しい権限があるか確認してください。"
+      msg = f"<#{channel_id}>\nこのチャンネルは選択できません\nbotに正しい権限があるか確認してください"
       await send_error(msg, interaction=interaction, followup=True)
       return None
 

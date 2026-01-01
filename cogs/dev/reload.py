@@ -14,17 +14,17 @@ class Reload(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
 
-  @app_commands.command(name="reload",description="[開発者専用]cogをreloadします。"  )
+  @app_commands.command(name="reload",description="[開発者専用]cogをreloadします"  )
   @app_commands.choices(cog=[app_commands.Choice(name=x, value=x) for x in cog_list])
   @app_commands.describe(cog="reloadしたいCogを選択")
   async def reload(self, interaction: discord.Interaction, cog: app_commands.Choice[str]):
     if not await self.bot.is_owner(interaction.user):
-      return await interaction.response.send_message("このコマンドは開発者専用です。", ephemeral=True)
+      return await interaction.response.send_message("このコマンドは開発者専用です", ephemeral=True)
 
     try:
       await self.bot.reload_extension(cog.value)
     except Exception as e:
-      await interaction.response.send_message(f"- {cog.value}の再読み込みに失敗。\n - 理由：{e}", ephemeral=True)
+      await interaction.response.send_message(f"- {cog.value}の再読み込みに失敗\n - 理由：{e}", ephemeral=True)
       return
 
     await interaction.response.send_message(f"{cog.value}の再読み込みに成功", ephemeral=True)

@@ -117,7 +117,7 @@ class PticketUser(commands.Cog):
     embed, self.user_cooldowns = user_cooldown(user_id, self.user_cooldowns)
     if embed:
       await message.add_reaction("❌")
-      embed.set_footer(text="このメッセージは15秒後に削除されます。")
+      embed.set_footer(text="このメッセージは15秒後に削除されます")
       await message.reply(embed=embed, delete_after=15)
       return
 
@@ -175,7 +175,7 @@ class PticketUser(commands.Cog):
     if pticket_thread.archived:
       embed=discord.Embed(
         title="お知らせ",
-        description=f"{pticket_thread.mention}に、新しい返信が届きました。",
+        description=f"{pticket_thread.mention}に、新しい返信が届きました",
         color=0xff33ff,
       )
       embed.set_footer(text="スレッドがアーカイブされていたため通知されました")

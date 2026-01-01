@@ -15,12 +15,12 @@ class BotUpdate(commands.GroupCog, group_name='update'):
     name="report_bot",
     description="[開発者専用]Report bot! のアップデート"
   )
-  @app_commands.describe(channel="送信するチャンネルを選択してください。")
-  @app_commands.describe(version="バージョンを指定してください。⚪︎.⚪︎.⚪︎の形が好ましいです。")
-  @app_commands.describe(description="本文を入力してください。")
+  @app_commands.describe(channel="送信するチャンネルを選択してください")
+  @app_commands.describe(version="バージョンを指定してください")
+  @app_commands.describe(description="本文を入力してください")
   async def update_bot(self, interaction: discord.Interaction, version: str, description: str, channel:discord.TextChannel | None = None):
     if not await self.bot.is_owner(interaction.user):
-      await interaction.response.send_message("このコマンドは開発者専用です。", ephemeral=True)
+      await interaction.response.send_message("このコマンドは開発者専用です", ephemeral=True)
       return
 
     if not channel:
