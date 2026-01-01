@@ -4,7 +4,7 @@ import discord
 
 import re
 
-from modules.functions import user_cooldown, create_reply_view
+from modules.functions import user_cooldown, create_reply_view, get_reply_view_data, get_files
 from modules.db import DB
 from modules import error
 
@@ -148,7 +148,23 @@ class PticketUser(commands.Cog):
         await error.send_error(msg, channel=message.channel)
         return
 
-    await pticket_msg.edit(view=None)
+      content, medias = get_reply_view_data(pticket_msg)
+      files = await get_files(medias)
+
+      view = ui.LayoutView()
+
+      container = ui.Container(accent_color=0xc8e1ff)
+      container.add_item(ui.TextDisplay("## 匿名Ticket"))
+      container.add_item(ui.Separator())
+      container.add_item(ui.TextDisplay("## Ticket内容"))
+      container.add_item(ui.TextDisplay(content, id=999))
+
+      for file in files:
+        container.add_item(ui.File(media=file))
+
+      view.add_item(container)
+
+      await pticket_msg.edit(view=view, attachments=files)
 
     # アーカイブされていた場合、親チャンネルに通知
     if pticket_thread.archived:
@@ -170,8 +186,8 @@ class PticketUser(commands.Cog):
 
     view = ui.LayoutView()
 
-    container = ui.Container(accent_color=0xffe7ab)
-    container.add_item(ui.TextDisplay("## 匿名Tticket"))
+    container = ui.Container(accent_color=0xc8e1ff)
+    container.add_item(ui.TextDisplay("## 匿名Ticket"))
     container.add_item(ui.Separator())
     container.add_item(ui.TextDisplay(f"## ユーザーからの返信\n{message.content}"))
 

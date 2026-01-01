@@ -43,12 +43,28 @@ class PticketAdmin(commands.Cog):
         await error.send_error(msg, interaction)
         return
 
-      await message.edit(view=None)
+
+      content, medias = get_reply_view_data(message)
+      files = await get_files(medias)
+
+      view = ui.LayoutView()
+
+      container = ui.Container(accent_color=0xc8e1ff)
+      container.add_item(ui.TextDisplay("## 匿名Ticket"))
+      container.add_item(ui.Separator())
+      container.add_item(ui.TextDisplay("## Ticket内容"))
+      container.add_item(ui.TextDisplay(content, id=999))
+
+      for file in files:
+        container.add_item(ui.File(media=file))
+
+      view.add_item(container)
+
+      await message.edit(view=view, attachments=files)
 
       view, files = await create_reply_view("pticket")
 
       await thread.send(view=view)
-      await interaction.delete_original_response()
       return
 
 
@@ -169,7 +185,7 @@ class PticketAdmin(commands.Cog):
       return
 
 
-    elif custom_id == "prixkwr_add_reply" or custom_id == "add_reply":
+    elif custom_id == "pticket_add_reply" or custom_id == "add_reply":
       view, _ = await create_reply_view("pticket")
 
       await interaction.response.edit_message(view=view)

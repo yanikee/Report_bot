@@ -33,24 +33,24 @@ class PrivateTicket(commands.Cog):
     guild_data = await self.db.get_guild_settings(guild_id)
     if not guild_data:
       msg = "サーバーデータが見つかりませんでした\n`/settings`を実行してください"
-      await error.send_error(msg, interaction, followup=True)
+      await error.send_error(msg, interaction)
       return
 
     is_guild_blocked = await self.db.is_guild_blocked(guild_id, interaction.user.id)
     if is_guild_blocked:
       msg = "サーバーブロックされています"
-      await error.send_error(msg, interaction, followup=True)
+      await error.send_error(msg, interaction)
       return
 
     ticket_channel_id = guild_data["ticket_channel_id"]
     if not ticket_channel_id:
       msg = "`/settings`を実行してください"
-      await error.send_error(msg, interaction, followup=True)
+      await error.send_error(msg, interaction)
       return
 
     embed, self.user_cooldowns = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
     if embed:
-      await interaction.followup.send(embed=embed)
+      await interaction.response.send_message(embed=embed, ephemeral=True)
       return
 
     modal = PrivateTicketModal(self.bot)
@@ -115,7 +115,8 @@ class PrivateTicketModal(ui.Modal):
     container = ui.Container(accent_color=0xc8e1ff)
     container.add_item(ui.TextDisplay("## 匿名Ticket"))
     container.add_item(ui.Separator())
-    container.add_item(ui.TextDisplay(f"## Ticket内容\n{self.pticket_input.value}"))
+    container.add_item(ui.TextDisplay("## Ticket内容"))
+    container.add_item(ui.TextDisplay(self.pticket_input.value, id=999))
 
     files: list[discord.File] = []
     if attachments := self.file_input.values:
@@ -127,11 +128,9 @@ class PrivateTicketModal(ui.Modal):
 
     view.add_item(container)
 
-    container = ui.Container()
-    row = ui.ActionRow()
+    row = ui.ActionRow(id=900)
     row.add_item(ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"pticket_create_thread", style=discord.ButtonStyle.gray))
-    container.add_item(row)
-    view.add_item(container)
+    view.add_item(row)
 
     try:
       pticket_msg = await channel.send(view=view, files=files)
