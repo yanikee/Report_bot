@@ -34,6 +34,7 @@ class PticketUser(commands.Cog):
       msg_id = reference.message_id
       if not msg_id:
         return
+
       try:
         msg = await message.channel.fetch_message(msg_id)
       except Exception:
@@ -48,7 +49,7 @@ class PticketUser(commands.Cog):
         if isinstance(child, components.TextDisplay) and child.id == target_id
       ), "")
 
-      if not "匿名Ticket｜" in content:
+      if not "匿名Ticket | " in content:
         return
 
       description = next((

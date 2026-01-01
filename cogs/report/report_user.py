@@ -48,7 +48,7 @@ class ReportUser(commands.Cog):
         if isinstance(child, components.TextDisplay) and child.id == target_id
       ), "")
 
-      if not "匿名Report｜" in content:
+      if not "匿名Report | " in content:
         return
 
       description = next((

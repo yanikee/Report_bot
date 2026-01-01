@@ -1,5 +1,6 @@
 from discord.ext import commands
 import discord
+from discord import components
 
 
 
@@ -7,7 +8,7 @@ class CheckReply(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
 
-  async def is_not_reply(self, message) -> None:
+  async def is_not_reply(self, message: discord.Message):
     embed = discord.Embed(
       description="# 返信できていません！\nbotからの匿名Report/匿名Ticketのメッセージに対して、「右クリック」→「返信」を行ってください！",
       color=0xff4b00,
@@ -19,42 +20,62 @@ class CheckReply(commands.Cog):
     return
 
   @commands.Cog.listener()
-  async def on_message(self, message):
-    # DMではなかった場合 -> return
-    if message.channel.type != discord.ChannelType.private:
+  async def on_message(self, message: discord.Message):
+    if not isinstance(message.channel, discord.DMChannel):
       return
-    # botだった場合 -> return
+
     if message.author.bot:
       return
 
-    # 返信メッセージじゃなかった場合 -> 警告後、return
-    if message.type != discord.MessageType.reply:
+    reference = message.reference
+
+    if message.type != discord.MessageType.reply or not reference:
       await self.is_not_reply(message)
       return
 
-    # 返信メッセージを取得
-    msg_id = message.reference.message_id
-    msg = await message.channel.fetch_message(msg_id)
+    msg = reference.cached_message
+    if not msg:
+      msg_id = reference.message_id
+      if not msg_id:
+        await self.is_not_reply(message)
+        return
 
-    # 返信msgにembedがなかった場合 -> 警告後、return
+      try:
+        msg = await message.channel.fetch_message(msg_id)
+      except Exception:
+        await self.is_not_reply(message)
+        return
+
+
     if not msg.embeds:
-      await self.is_not_reply(message)
-      return
+      target_id = 998
+      content = next((
+        child.content
+        for comp in msg.components if isinstance(comp, components.Container)
+        for child in comp.children
+        if isinstance(child, components.TextDisplay) and child.id == target_id
+      ), "")
 
-    # 匿名Report, 匿名Ticketのembedじゃなかった場合 -> 警告後、return
-    if msg.embeds[0].footer:
-      if any(keyword in msg.embeds[0].footer.text for keyword in ["匿名報告 |", "匿名Report |", "匿名ticket |", "匿名Ticket |"]):
-        pass
-      else:
+      if not "匿名Ticket | " in content and not "匿名Report | " in content:
         await self.is_not_reply(message)
         return
+
     else:
-      if "------------返信内容------------" in msg.embeds[0].description:
-        pass
-      else:
+      embed = msg.embeds[0]
+      footer_text = embed.footer.text
+
+      if not footer_text:
         await self.is_not_reply(message)
         return
 
+      if (
+        "匿名ticket |" not in footer_text and
+        "匿名Ticket |" not in footer_text and
+        "匿名Report | " not in footer_text and
+        "匿名報告 | " not in footer_text
+      ):
+        await self.is_not_reply(message)
+        return
 
 
 async def setup(bot):

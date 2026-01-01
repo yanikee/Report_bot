@@ -167,7 +167,7 @@ class PrivateTicketModal(ui.Modal):
 
     container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
-    container.add_item(ui.TextDisplay(f"匿名Ticket｜{guild.name}", id=998))
+    container.add_item(ui.TextDisplay(f"匿名Ticket | {guild.name}", id=998))
 
     view.add_item(container)
 
