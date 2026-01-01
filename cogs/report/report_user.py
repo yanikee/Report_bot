@@ -10,7 +10,7 @@ from modules import error
 
 
 
-class ReplyToReply(commands.Cog):
+class ReportUser(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
     self.db = DB()
@@ -48,7 +48,7 @@ class ReplyToReply(commands.Cog):
         if isinstance(child, components.TextDisplay) and child.id == target_id
       ), "")
 
-      if not "匿名Report｜" in content:
+      if not "匿名Report | " in content:
         return
 
       description = next((
@@ -108,9 +108,13 @@ class ReplyToReply(commands.Cog):
 
     is_guild_blocked = await self.db.is_guild_blocked(guild_id, user_id)
     if is_guild_blocked:
+      msg = "サーバーブロックされています"
+      await error.send_error(msg, channel=message.channel)
       return
 
     if thread_data["is_blocked"]:
+      msg = "ブロックされています"
+      await error.send_error(msg, channel=message.channel)
       return
 
     embed, self.user_cooldowns = user_cooldown(user_id, self.user_cooldowns)
@@ -214,4 +218,4 @@ class ReplyToReply(commands.Cog):
 
 
 async def setup(bot):
-  await bot.add_cog(ReplyToReply(bot))
+  await bot.add_cog(ReportUser(bot))

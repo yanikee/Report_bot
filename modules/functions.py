@@ -84,7 +84,7 @@ async def create_reply_view(
 
 def get_reply_view_data(msg: discord.Message) -> tuple[str, list[discord.UnfurledMediaItem]]:
   content: str = ""
-  files: list[discord.UnfurledMediaItem] = []
+  medias: list[discord.UnfurledMediaItem] = []
 
   if isinstance(msg.components[0], components.Container):
     children = msg.components[0].children
@@ -94,9 +94,9 @@ def get_reply_view_data(msg: discord.Message) -> tuple[str, list[discord.Unfurle
         content = child.content
 
       if isinstance(child, components.FileComponent):
-        files.append(child.media)
+        medias.append(child.media)
 
-  return content, files
+  return content, medias
 
 
 

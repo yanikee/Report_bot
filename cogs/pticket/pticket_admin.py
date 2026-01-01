@@ -9,7 +9,7 @@ from const import EMOJI_DICT
 
 
 
-class ReportGuildAdmin(commands.Cog):
+class PticketAdmin(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
     self.db = DB()
@@ -26,15 +26,15 @@ class ReportGuildAdmin(commands.Cog):
 
     custom_id = data.get("custom_id")
 
-    if custom_id == "report_create_thread":
+    if custom_id == "pticket_create_thread":
       guild_data = await self.db.get_guild_settings(guild.id)
       if not guild_data:
         msg = "サーバーデータが見つかりませんでした\n`/settings`を実行してください"
         await error.send_error(msg, interaction)
         return
 
-      guild_data["report_count"] += 1
-      name = f"private_report-{str(guild_data["report_count"]).zfill(4)}"
+      guild_data["ticket_count"] += 1
+      name = f"private_ticket-{str(guild_data["ticket_count"]).zfill(4)}"
 
       try:
         thread = await message.create_thread(name=name)
@@ -43,21 +43,38 @@ class ReportGuildAdmin(commands.Cog):
         await error.send_error(msg, interaction)
         return
 
-      await message.edit(view=None)
 
-      view, files = await create_reply_view("report")
+      content, medias = get_reply_view_data(message)
+      files = await get_files(medias)
+
+      view = ui.LayoutView()
+
+      container = ui.Container(accent_color=0xc8e1ff)
+      container.add_item(ui.TextDisplay("## 匿名Ticket"))
+      container.add_item(ui.Separator())
+      container.add_item(ui.TextDisplay("## Ticket内容"))
+      container.add_item(ui.TextDisplay(content, id=999))
+
+      for file in files:
+        container.add_item(ui.File(media=file))
+
+      view.add_item(container)
+
+      await message.edit(view=view, attachments=files)
+
+      view, files = await create_reply_view("pticket")
 
       await thread.send(view=view)
-      await interaction.delete_original_response()
       return
 
-    elif custom_id == "report_edit_reply":
+
+    elif custom_id == "pticket_edit_reply":
       modal = EditReplyModal(self.bot, message)
       await interaction.response.send_modal(modal)
       return
 
 
-    elif custom_id == "report_file_delete":
+    elif custom_id == "pticket_file_delete":
       values = data.get("values")
       if not values:
         return
@@ -67,13 +84,13 @@ class ReportGuildAdmin(commands.Cog):
       file_name = values[0]
       content, medias = get_reply_view_data(message)
       existing_files = [f for f in (await get_files(medias)) if file_name not in f.filename]
-      view, files = await create_reply_view("report", content, list(existing_files))
+      view, files = await create_reply_view("pticket", content, list(existing_files))
       await interaction.followup.edit_message(message.id, view=view, attachments=files)
       await interaction.delete_original_response()
       return
 
 
-    elif custom_id == "report_send":
+    elif custom_id == "pticket_send":
       await interaction.response.defer(thinking=True)
 
       if not isinstance(channel, discord.Thread):
@@ -107,12 +124,12 @@ class ReportGuildAdmin(commands.Cog):
 
       view = ui.LayoutView()
 
-      container = ui.Container(accent_color=0xffe7ab)
+      container = ui.Container(accent_color=0xc8e1ff)
       icon_url = guild.icon.url if guild.icon else "https://example.com"
 
       thumbnail = ui.Thumbnail(icon_url, description=f"{guild.id}/{channel.parent_id}/{channel.id}")
       section = ui.Section(accessory=thumbnail)
-      section.add_item(ui.TextDisplay("# 匿名Report"))
+      section.add_item(ui.TextDisplay("# 匿名Ticket"))
       section.add_item(ui.TextDisplay(f"- **{guild.name}**の管理者からメッセージが届きました"))
       section.add_item(ui.TextDisplay("- __**このメッセージに返信**__すると管理者に届きます"))
       container.add_item(section)
@@ -129,7 +146,7 @@ class ReportGuildAdmin(commands.Cog):
 
       container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
 
-      container.add_item(ui.TextDisplay(f"匿名Report｜{guild.name}", id=998))
+      container.add_item(ui.TextDisplay(f"匿名Ticket | {guild.name}", id=998))
 
       view.add_item(container)
 
@@ -162,27 +179,27 @@ class ReportGuildAdmin(commands.Cog):
       await channel.add_user(interaction.user)
 
       view = discord.ui.View()
-      button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
+      button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="pticket_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
       await channel.send(view=view)
       return
 
 
-    elif custom_id == "report_add_reply" or custom_id == "add_reply":
-      view, _ = await create_reply_view("report")
+    elif custom_id == "pticket_add_reply" or custom_id == "add_reply":
+      view, _ = await create_reply_view("pticket")
 
       await interaction.response.edit_message(view=view)
       return
 
 
-    elif custom_id == "report_cancel":
+    elif custom_id == "pticket_cancel":
       if not isinstance(channel, discord.Thread):
         return
 
       await message.delete()
 
       view = discord.ui.View()
-      button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
+      button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="pticket_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
       await channel.send(view=view)
       return
@@ -236,7 +253,7 @@ class EditReplyModal(ui.Modal):
 
     values = existing_files + self.file_input.values
 
-    view, files = await create_reply_view("report", self.reply_input.value, values)
+    view, files = await create_reply_view("pticket", self.reply_input.value, values)
 
     filenames = [file.filename for file in files]
     if len(filenames) != len(set(filenames)):
@@ -250,5 +267,6 @@ class EditReplyModal(ui.Modal):
       await interaction.delete_original_response()
 
 
+
 async def setup(bot):
-  await bot.add_cog(ReportGuildAdmin(bot))
+  await bot.add_cog(PticketAdmin(bot))

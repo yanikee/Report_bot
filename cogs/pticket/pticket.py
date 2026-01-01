@@ -1,10 +1,9 @@
 from discord.ext import commands
-from discord import app_commands, ui
+from discord import ui
 import discord
 
 from modules import error, functions
-from modules.db import DB, GuildSettings
-from modules.functions import create_reply_view
+from modules.db import DB
 from const import EMOJI_DICT
 
 
@@ -31,29 +30,27 @@ class PrivateTicket(commands.Cog):
       await error.send_error(msg, interaction)
       return
 
-    await interaction.response.defer(ephemeral=True)
-
     guild_data = await self.db.get_guild_settings(guild_id)
     if not guild_data:
       msg = "サーバーデータが見つかりませんでした\n`/settings`を実行してください"
-      await error.send_error(msg, interaction, followup=True)
+      await error.send_error(msg, interaction)
       return
 
     is_guild_blocked = await self.db.is_guild_blocked(guild_id, interaction.user.id)
     if is_guild_blocked:
       msg = "サーバーブロックされています"
-      await error.send_error(msg, interaction, followup=True)
+      await error.send_error(msg, interaction)
       return
 
     ticket_channel_id = guild_data["ticket_channel_id"]
     if not ticket_channel_id:
       msg = "`/settings`を実行してください"
-      await error.send_error(msg, interaction, followup=True)
+      await error.send_error(msg, interaction)
       return
 
     embed, self.user_cooldowns = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
     if embed:
-      await interaction.followup.send(embed=embed)
+      await interaction.response.send_message(embed=embed, ephemeral=True)
       return
 
     modal = PrivateTicketModal(self.bot)
@@ -80,13 +77,13 @@ class PrivateTicketModal(ui.Modal):
 
 
   async def on_submit(self, interaction: discord.Interaction):
-    await interaction.response.defer(thinking=True)
+    await interaction.response.defer(thinking=True, ephemeral=True)
 
-    guild_id = interaction.guild_id
-    if not guild_id:
+    guild = interaction.guild
+    if not guild:
       return
 
-    guild_data = await self.db.get_guild_settings(guild_id)
+    guild_data = await self.db.get_guild_settings(guild.id)
     if not guild_data:
       return
 
@@ -118,36 +115,66 @@ class PrivateTicketModal(ui.Modal):
     container = ui.Container(accent_color=0xc8e1ff)
     container.add_item(ui.TextDisplay("## 匿名Ticket"))
     container.add_item(ui.Separator())
-    container.add_item(ui.TextDisplay(f"## Ticket内容\n{self.pticket_input.value}"))
+    container.add_item(ui.TextDisplay("## Ticket内容"))
+    container.add_item(ui.TextDisplay(self.pticket_input.value, id=999))
 
+    files: list[discord.File] = []
     if attachments := self.file_input.values:
       container.add_item(ui.TextDisplay("## 添付ファイル"))
       for attachment in attachments:
         file = await attachment.to_file()
+        files.append(file)
         container.add_item(ui.File(media=file))
 
     view.add_item(container)
 
-    container = ui.Container()
-    row = ui.ActionRow()
+    row = ui.ActionRow(id=900)
     row.add_item(ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"pticket_create_thread", style=discord.ButtonStyle.gray))
-    container.add_item(row)
-    view.add_item(container)
-
+    view.add_item(row)
 
     try:
-      pticket_msg = await channel.send(view=view)
+      pticket_msg = await channel.send(view=view, files=files)
     except Exception:
       msg = "匿名Ticketを送信できませんでした"
-      await error.send_error(msg, interaction)
+      await error.send_error(msg, interaction, followup=True)
       return
 
     await self.db.create_thread_entry(
       thread_id=pticket_msg.id,
-      guild_id=guild_id,
+      guild_id=guild.id,
       user_id=interaction.user.id,
       case_type="ticket"
     )
+
+    view = ui.LayoutView()
+    container = ui.Container(accent_color=0xc8e1ff)
+
+    icon_url = guild.icon.url if guild.icon else "https://example.com"
+
+    thumbnail = ui.Thumbnail(icon_url, description=f"{guild.id}/{pticket_msg.channel.id}/{pticket_msg.id}")
+    section = ui.Section(accessory=thumbnail)
+    section.add_item(ui.TextDisplay("# 匿名Ticket"))
+    section.add_item(ui.TextDisplay("- ファイル添付や追伸の際には、__**このメッセージに返信**__してください。"))
+    container.add_item(section)
+
+    container.add_item(ui.Separator())
+    container.add_item(ui.TextDisplay(f"## Ticket内容\n{self.pticket_input.value}"))
+
+    if files:
+      container.add_item(ui.TextDisplay("## 添付ファイル"))
+      for file in files:
+        container.add_item(ui.File(media=file))
+
+    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+    container.add_item(ui.TextDisplay(f"匿名Ticket | {guild.name}", id=998))
+
+    view.add_item(container)
+
+    await interaction.user.send(view=view, files=files)
+
+    await interaction.followup.send("匿名Ticketが完了しました\nDMにてサーバー管理者と会話を行うことができます")
+
 
 
 async def setup(bot):
