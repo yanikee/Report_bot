@@ -1,10 +1,9 @@
 from discord.ext import commands
-from discord import app_commands, ui
+from discord import ui
 import discord
 
 from modules import error, functions
-from modules.db import DB, GuildSettings
-from modules.functions import create_reply_view
+from modules.db import DB
 from const import EMOJI_DICT
 
 
