@@ -12,7 +12,7 @@ class Block(commands.Cog):
     self.bot = bot
     self.db = DB()
 
-  @app_commands.command(name="block", description='匿名Report, 匿名Ticketをブロック/ブロック解除します。')
+  @app_commands.command(name="block", description='匿名Report, 匿名Ticketをブロック/ブロック解除します')
   @app_commands.choices(block_type=[
     app_commands.Choice(name="このスレッドのブロック", value="normal"),
     app_commands.Choice(name="サーバー全体のブロック", value="server"),

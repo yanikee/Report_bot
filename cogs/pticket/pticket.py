@@ -154,7 +154,7 @@ class PrivateTicketModal(ui.Modal):
     thumbnail = ui.Thumbnail(icon_url, description=f"{guild.id}/{pticket_msg.channel.id}/{pticket_msg.id}")
     section = ui.Section(accessory=thumbnail)
     section.add_item(ui.TextDisplay("# 匿名Ticket"))
-    section.add_item(ui.TextDisplay("- ファイル添付や追伸の際には、__**このメッセージに返信**__してください。"))
+    section.add_item(ui.TextDisplay("- ファイル添付や追伸の際には、__**このメッセージに返信**__してください"))
     container.add_item(section)
 
     container.add_item(ui.Separator())

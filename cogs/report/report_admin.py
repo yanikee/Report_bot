@@ -199,7 +199,7 @@ class EditReplyModal(ui.Modal):
 
     content, self.files = get_reply_view_data(msg)
 
-    if "下のボタンから編集してください。" in content:
+    if "下のボタンから編集してください" in content:
       default = None
       self.disabled = True
     else:

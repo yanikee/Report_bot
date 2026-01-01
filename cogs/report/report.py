@@ -222,9 +222,9 @@ class ReportReasonModal(ui.Modal):
     container.add_item(ui.TextDisplay("## Report"))
 
     if self.reporter:
-      msg = "報告が完了しました。\nサーバー管理者から直接話を伺うことがあります。"
+      msg = "報告が完了しました\nサーバー管理者から直接話を伺うことがあります"
     else:
-      msg = "サーバー管理者に匿名Reportが送信されました。\nDMにてサーバー管理者と会話を行うことができます。"
+      msg = "サーバー管理者に匿名Reportが送信されました\nDMにてサーバー管理者と会話を行うことができます"
 
     msg += f"\n\n**報告したメッセージ**\n{self.reported_msg.jump_url}"
 
@@ -244,7 +244,7 @@ class ReportReasonModal(ui.Modal):
         )
 
       embed_2=discord.Embed(
-        description="ファイル添付や追伸の際には、**このメッセージに返信**してください。",
+        description="ファイル添付や追伸の際には、**このメッセージに返信**してください",
         color=0xffe7ab,
       )
       await interaction.user.send(embeds=[embed_1, embed_2])

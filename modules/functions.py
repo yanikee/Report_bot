@@ -20,7 +20,7 @@ def user_cooldown(user_id: int, user_cooldowns: dict, rate: int=30):
       retry_second = int(retry_after) % 60
       embed = discord.Embed(
         title=f"Cooldown",
-        description=f"クールダウン中です。\nあと{retry_minute}分{retry_second}秒お待ち下さい。",
+        description=f"クールダウン中です\nあと{retry_minute}分{retry_second}秒お待ち下さい",
         color=0xF2E700,
       )
       return embed, user_cooldowns
@@ -44,7 +44,7 @@ async def create_reply_view(
     container.add_item(ui.TextDisplay(content, id=999))
     disabled = False
   else:
-    container.add_item(ui.TextDisplay("下のボタンから編集してください。", id=999))
+    container.add_item(ui.TextDisplay("下のボタンから編集してください", id=999))
     disabled = True
 
   files: list[discord.File] = []
