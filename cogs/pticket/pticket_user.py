@@ -105,9 +105,13 @@ class PticketUser(commands.Cog):
 
     is_guild_blocked = await self.db.is_guild_blocked(guild_id, user_id)
     if is_guild_blocked:
+      msg = "サーバーブロックされています"
+      await error.send_error(msg, channel=message.channel)
       return
 
     if thread_data["is_blocked"]:
+      msg = "ブロックされています"
+      await error.send_error(msg, channel=message.channel)
       return
 
     embed, self.user_cooldowns = user_cooldown(user_id, self.user_cooldowns)
