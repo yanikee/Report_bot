@@ -49,6 +49,10 @@ class PticketAdmin(commands.Cog):
 
       view = ui.LayoutView()
 
+      ticket_mention_role_id = guild_data["ticket_mention_role_id"]
+      if ticket_mention_role_id:
+        view.add_item(ui.TextDisplay(f"<@&{ticket_mention_role_id}>"))
+
       container = ui.Container(accent_color=0xc8e1ff)
       container.add_item(ui.TextDisplay("## 匿名Ticket"))
       container.add_item(ui.Separator())
