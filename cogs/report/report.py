@@ -70,7 +70,7 @@ class ReportButton(ui.LayoutView):
 
     container = ui.Container(accent_color=0xffe7ab)
     container.add_item(ui.TextDisplay("## Report"))
-    container.add_item(ui.TextDisplay("通常報告：報告者名がサーバー管理者に伝わる\n匿名報告：報告者名は誰にも伝わらない"))
+    container.add_item(ui.TextDisplay("**通常報告**：報告者名がサーバー管理者に伝わる\n**匿名報告**：報告者名は誰にも伝わらない"))
 
     row = ui.ActionRow()
     self.button_0 = ui.Button(label='通常報告', emoji=EMOJI_DICT["person_alert"], custom_id='public_report', style=discord.ButtonStyle.gray)
@@ -92,9 +92,11 @@ class ReportButton(ui.LayoutView):
       return
 
     if custom_id == "public_report":
-      await self.do_report(interaction, self.message, interaction.user)
+      await self.do_report(interaction, self.message, reporter=interaction.user)
+      return
 
     elif custom_id == "private_report":
+      # 後ほどDMを使うため、初めにDMにメッセージを送れるか試す
       try:
         await interaction.user.send("テストメッセージ", delete_after=0.1)
       except Exception:
@@ -102,7 +104,8 @@ class ReportButton(ui.LayoutView):
         await error.send_error(msg, interaction)
         return
 
-      await self.do_report(interaction, self.message, None)
+      await self.do_report(interaction, self.message, reporter=None)
+      return
 
 
   async def do_report(self, interaction: discord.Interaction, message: discord.Message, reporter: discord.User | discord.Member | None):

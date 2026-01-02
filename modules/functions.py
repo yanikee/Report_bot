@@ -83,19 +83,21 @@ async def create_reply_view(
 
 
 def get_reply_view_data(msg: discord.Message) -> tuple[str, list[discord.UnfurledMediaItem]]:
-  content: str = ""
+  contents: list[str] = []
   medias: list[discord.UnfurledMediaItem] = []
 
-  if isinstance(msg.components[0], components.Container):
-    children = msg.components[0].children
+  for comp in msg.components:
+    if isinstance(comp, components.Container):
+      children = comp.children
 
-    for child in children:
-      if isinstance(child, components.TextDisplay) and child.id == 999:
-        content = child.content
+      for child in children:
+        if isinstance(child, components.TextDisplay) and child.id == 999:
+          contents.append(child.content)
 
-      if isinstance(child, components.FileComponent):
-        medias.append(child.media)
+        if isinstance(child, components.FileComponent):
+          medias.append(child.media)
 
+  content = "\n".join(contents)
   return content, medias
 
 

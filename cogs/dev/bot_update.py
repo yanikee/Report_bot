@@ -43,7 +43,7 @@ class BotUpdate(commands.GroupCog, group_name='update'):
     await interaction.response.send_message(f"{channel.mention}に送ったよう", ephemeral=True)
     await channel.send(embed=embed)
 
-    path = "data/bot_version"
+    path = "data/bot_version.txt"
     async with aiofiles.open(path, mode="w") as f:
       await f.write(version)
     custom_activity = discord.CustomActivity(f"/help | ver{version}")

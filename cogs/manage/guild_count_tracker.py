@@ -20,7 +20,7 @@ class GuildCountRecorder(commands.Cog):
     today = datetime.datetime.now().strftime('%Y-%m-%d')
 
     #CSVファイルにサーバー数を追記
-    async with aiofiles.open('data/guild_counts.csv', mode='a') as csvfile:
+    async with aiofiles.open('db/guild_counts.csv', mode='a') as csvfile:
       await csvfile.write(f'\n{today},{guild_count}')
 
 

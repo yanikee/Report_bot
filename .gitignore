@@ -4,7 +4,7 @@ log/
 env.json
 .env
 
-bot_version
+bot_version.txt
 *.csv
 
 #  Byte-compiled / optimized / DLL files
