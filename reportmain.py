@@ -50,7 +50,7 @@ async def on_ready():
     async with aiofiles.open(path, mode="w", encoding="UTF-8"):
       pass
 
-  path = "db/bot_version"
+  path = "db/bot_version.txt"
   if os.path.exists(path):
     async with aiofiles.open(path, mode="r", encoding="UTF-8") as f:
       version = await f.read()
