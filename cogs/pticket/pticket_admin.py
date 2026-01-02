@@ -182,8 +182,8 @@ class PticketAdmin(commands.Cog):
 
       await channel.add_user(interaction.user)
 
-      view = discord.ui.View()
-      button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="pticket_add_reply", style=discord.ButtonStyle.gray)
+      view = ui.View()
+      button = ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="pticket_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
       await channel.send(view=view)
       return
@@ -202,8 +202,8 @@ class PticketAdmin(commands.Cog):
 
       await message.delete()
 
-      view = discord.ui.View()
-      button = discord.ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="pticket_add_reply", style=discord.ButtonStyle.gray)
+      view = ui.View()
+      button = ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="pticket_add_reply", style=discord.ButtonStyle.gray)
       view.add_item(button)
       await channel.send(view=view)
       return
@@ -227,7 +227,7 @@ class EditReplyModal(ui.Modal):
       default = content
       self.disabled = False
 
-    self.reply_input = discord.ui.TextInput(
+    self.reply_input = ui.TextInput(
       style=discord.TextStyle.long,
       default=default,
       required=False,
