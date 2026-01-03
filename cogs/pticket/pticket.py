@@ -59,7 +59,7 @@ class PrivateTicket(commands.Cog):
 
 class PrivateTicketModal(ui.Modal):
   def __init__(self, bot: commands.Bot):
-    super().__init__(title=f'匿名Ticketモーダル')
+    super().__init__(title=f'匿名Ticket')
     self.bot = bot
     self.db = DB()
 
