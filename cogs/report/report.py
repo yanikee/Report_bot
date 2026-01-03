@@ -183,14 +183,14 @@ class ReportButton(ui.LayoutView):
 
 class ReportReasonModal(ui.Modal):
   def __init__(self, interaction: discord.Interaction, reported_msg: discord.Message, report_msg: discord.Message, reporter: discord.User | discord.Member | None):
-    super().__init__(title=f'報告理由記入用modal')
+    super().__init__(title='匿名Report')
     self.interaction = interaction
     self.reported_msg = reported_msg
     self.reporter = reporter
     self.report_msg = report_msg
 
     self.report_reason = ui.TextInput(
-      label="報告の理由を記入してください",
+      label="Report理由",
       style=discord.TextStyle.long,
       required=True,
       row=0
@@ -236,21 +236,28 @@ class ReportReasonModal(ui.Modal):
     await self.interaction.followup.edit_message(self.interaction.message.id, view=view)
 
     if not self.reporter:
-      embed_1=discord.Embed(
-        url=self.report_msg.jump_url,
-        description=f"# 匿名Report\n## Reportしたメッセージ\n　{self.reported_msg.jump_url}\n## Report理由\n　{self.report_reason.value}",
-        color=0xffe7ab,
-      )
-      embed_1.set_footer(
-          text=f"匿名Report | {guild.name}",
-          icon_url=guild.icon.replace(format='png').url if guild.icon else None,
-        )
+      view = ui.LayoutView()
+      container = ui.Container(accent_color=0xffe7ab)
 
-      embed_2=discord.Embed(
-        description="ファイル添付や追伸の際には、**このメッセージに返信**してください",
-        color=0xffe7ab,
-      )
-      await interaction.user.send(embeds=[embed_1, embed_2])
+      icon_url = guild.icon.url if guild.icon else "https://example.com"
+
+      thumbnail = ui.Thumbnail(icon_url, description=f"{guild.id}/{self.report_msg.channel.id}/{self.report_msg.id}")
+      section = ui.Section(accessory=thumbnail)
+      section.add_item(ui.TextDisplay("# 匿名Report"))
+      section.add_item(ui.TextDisplay("- ファイル添付や追伸の際には、__**このメッセージに返信**__してください"))
+      container.add_item(section)
+
+      container.add_item(ui.Separator())
+      container.add_item(ui.TextDisplay(f"## Reportしたメッセージ\n　{self.reported_msg.jump_url}"))
+      container.add_item(ui.TextDisplay(f"## Report理由\n{self.report_reason.value}"))
+
+      container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+
+      container.add_item(ui.TextDisplay(f"匿名Report | {guild.name}", id=998))
+
+      view.add_item(container)
+
+      await interaction.user.send(view=view)
 
 
 
