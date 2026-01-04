@@ -1,190 +1,221 @@
 from discord.ext import commands
+from discord import ui, components
 import discord
 
-import os
-import json
-import aiofiles
-import datetime
+import re
 
+from modules.functions import user_cooldown, create_reply_view
+from modules.db import DB
 from modules import error
-from modules import check
 
 
 
-class ReplyToReply(commands.Cog):
+class ReportUser(commands.Cog):
   def __init__(self, bot: commands.Bot):
     self.bot = bot
+    self.db = DB()
     self.user_cooldowns = {}
 
   @commands.Cog.listener()
-  async def on_message(self, message):
-    # DMじゃなかった場合 -> return
-    if message.channel.type != discord.ChannelType.private:
+  async def on_message(self, message: discord.Message):
+    if not isinstance(message.channel, discord.DMChannel):
       return
-    # botだった場合 -> return
+
     if message.author.bot:
       return
-    # 返信メッセージじゃなかった場合 -> return
-    if message.type != discord.MessageType.reply:
+
+    reference = message.reference
+
+    if message.type != discord.MessageType.reply or not reference:
       return
 
-    # 返信メッセージを取得
-    msg_id = message.reference.message_id
-    msg = await message.channel.fetch_message(msg_id)
+    msg = reference.cached_message
+    if not msg:
+      msg_id = reference.message_id
+      if not msg_id:
+        return
+      try:
+        msg = await message.channel.fetch_message(msg_id)
+      except Exception:
+        return
 
-    # embedがなかった場合 -> return
     if not msg.embeds:
-      return
+      target_id = 998
+      content = next((
+        child.content
+        for comp in msg.components if isinstance(comp, components.Container)
+        for child in comp.children
+        if isinstance(child, components.TextDisplay) and child.id == target_id
+      ), "")
 
-    # 匿名報告のembedじゃなかった場合 -> return
-    if msg.embeds[0].footer:
-      if "匿名報告 |" in msg.embeds[0].footer.text:
-        pass
-      elif "匿名Report |" in msg.embeds[0].footer.text:
-        pass
-      else:
+      if not "匿名Report | " in content:
         return
+
+      description = next((
+        child.accessory.description
+        for comp in msg.components if isinstance(comp, components.Container)
+        for child in comp.children if isinstance(child, components.SectionComponent)
+        if isinstance(child.accessory, components.ThumbnailComponent)
+      ), None)
+
+      if not description:
+        return
+
+      guild_id, channel_id, message_id = [int(x) for x in description.split("/")]
+
+
     else:
-      if "------------返信内容------------" in msg.embeds[0].description:
-        pass
+      embed = msg.embeds[0]
+      description = embed.description
+      footer_text = embed.footer.text
+
+      if footer_text:
+        if "匿名報告 |" not in footer_text and "匿名Report |" not in footer_text:
+          return
+
       else:
+        if not description:
+          return
+        if not "------------返信内容------------" in description:
+          return
+
+      report_msg_url = embed.url
+      if not report_msg_url:
         return
 
-    # guild_block
-    embed = await check.is_guild_block(bot=self.bot, guild=None, user_id=None, message=message, referenced_message=msg)
-    if embed:
-      await message.reply(embed=embed)
+      match = re.search(r'channels/(\d+)/(\d+)/(\d+)', report_msg_url)
+      if not match:
+        return None
+
+      guild_id = int(match.group(1))
+      channel_id = int(match.group(2))
+      message_id = int(match.group(3))
+
+
+    guild_data = await self.db.get_guild_settings(guild_id)
+    if not guild_data:
+      msg = "サーバーデータが存在しません\nサーバーで`/settings`を実行してください"
+      await error.send_error(msg, channel=message.channel)
       return
 
-    # cooldown
-    embed, self.user_cooldowns = check.user_cooldown(message.author.id, self.user_cooldowns)
+    thread_data = await self.db.get_thread(message_id)
+    if not thread_data:
+      msg = "スレッドデータが存在しませんでした"
+      await error.send_error(msg, channel=message.channel)
+      return
+
+    user_id = message.author.id
+
+    is_guild_blocked = await self.db.is_guild_blocked(guild_id, user_id)
+    if is_guild_blocked:
+      msg = "サーバーブロックされています"
+      await error.send_error(msg, channel=message.channel)
+      return
+
+    if thread_data["is_blocked"]:
+      msg = "ブロックされています"
+      await error.send_error(msg, channel=message.channel)
+      return
+
+    embed, self.user_cooldowns = user_cooldown(user_id, self.user_cooldowns)
     if embed:
       await message.add_reaction("❌")
-      embed.set_footer(text="このメッセージは15秒後に削除されます。")
+      embed.set_footer(text="このメッセージは15秒後に削除されます")
       await message.reply(embed=embed, delete_after=15)
       return
 
-    # threadを取得
-    url_splited = msg.embeds[0].url.split('/')
-    try:
-      cha = await self.bot.fetch_channel(int(url_splited[-1]))
-    except Exception as e:
-      report_cha = self.bot.get_channel(int(url_splited[-2]))
-      if not report_cha:
-        embed = await error.generate(code="3-3-01")
-        await message.channel.send(embed=embed)
-        return
-      else:
-        try:
-          msg = await report_cha.fetch_message(int(url_splited[-1]))
-        except discord.errors.NotFound:
-          embed = await error.generate(code="3-3-02")
-          await message.channel.send(embed=embed)
-          return
-        else:
-          # reply_numを定義
-          path = f"data/report/guilds/{msg.guild.id}.json"
-          async with aiofiles.open(path, encoding='utf-8', mode="r") as f:
-            contents = await f.read()
-          report_dict = json.loads(contents)
-          # 存在しなかった場合は作る
-          if not report_dict.get("reply_num"):
-            report_dict["reply_num"] = 0
-          report_dict["reply_num"] += 1
-          # 保存
-          async with aiofiles.open(path, mode="w") as f:
-            contents = json.dumps(report_dict, indent=2, ensure_ascii=False)
-            await f.write(contents)
-
-          # thread作成, 送信
-          await msg.edit(view=None)
-          cha = await msg.create_thread(name=f"private_report-{str(report_dict['reply_num']).zfill(4)}")
-
-    # block判定
-    path = f"data/report/blocked/{cha.guild.id}.json"
-    if os.path.exists(path):
-      async with aiofiles.open(path, encoding='utf-8', mode="r") as f:
-        contents = await f.read()
-      blocked_dict = json.loads(contents)
+    channel = self.bot.get_channel(channel_id)
+    if not channel:
       try:
-        if blocked_dict[str(cha.id)] == True:
-          await message.reply("サーバー管理者にブロックされているため、返信できません。")
-          return
-      except KeyError:
-        pass
+        channel = await self.bot.fetch_channel(channel_id)
+      except Exception:
+        msg = "チャンネルが存在しませんでした\nサーバーで`/settings`を実行してください"
+        await error.send_error(msg, channel=message.channel)
+        return
+
+    if not isinstance(channel, discord.TextChannel):
+      return
+
+    try:
+      report_msg = await channel.fetch_message(message_id)
+    except Exception:
+      msg = "スレッドが取得できませんでした"
+      await error.send_error(msg, channel=message.channel)
+      return
+
+    report_thread = report_msg.thread
+
+    if not report_thread:
+      guild_data["report_count"] += 1
+      name = f"private_report-{str(guild_data["report_count"]).zfill(4)}"
+
+      try:
+        report_thread = await report_msg.create_thread(name=name)
+      except Exception:
+        msg = "スレッドが作成できませんでした"
+        await error.send_error(msg, channel=message.channel)
+        return
+
+    await report_msg.edit(view=None)
 
     # アーカイブされていた場合、親チャンネルに通知
-    if cha.archived:
+    if report_thread.archived:
       embed=discord.Embed(
         title="お知らせ",
-        description=f"{cha.mention}に、新しい返信が届きました。",
+        description=f"{report_thread.mention}に、新しい返信が届きました",
         color=0xff33ff,
       )
       embed.set_footer(text="スレッドがアーカイブされていたため通知されました")
-      await cha.parent.send(embed=embed)
+      await channel.send(embed=embed)
 
-    # embedの定義
-    embed=discord.Embed(
-      title="ユーザーからの返信",
-      description=message.content,
-      color=0xffe7ab,
-    )
-
-    # ユーザーからの返信を送信
-    try:
-      await cha.send(embed=embed)
-    except discord.errors.Forbidden:
-      embed = await error.generate(code="3-3-03")
-      await message.channel.send(embed=embed)
-      return
-    except Exception as e:
-      e = f"\n[ERROR[3-3-04]]{datetime.datetime.now()}\n- USER_ID:{message.author.id}\n- GUILD_ID:{cha.guild.id}\n- CHANNEL_ID:{cha.id}\n{e}\n"
-      print(e)
-      embed = await error.generate(code="3-3-04")
-      await message.channel.send(embed=embed)
-      return
-
-    # 返信ボタンが設置されてたら削除
-    async for msg in cha.history(limit=4):
+    panel_msg = None
+    async for msg in report_thread.history(limit=5):
       if msg.components:
+        panel_msg = msg
         await msg.delete()
         break
 
-    # attachmentがあった場合→送信
-    if message.attachments:
-      file_l = [await x.to_file() for x in message.attachments]
-      await cha.send(files=file_l)
 
-    # 返信用のbuttonを設置
-    embed=discord.Embed(
-        title="返信内容",
-        description="下のボタンから編集してください。",
-        color=0x95FFA1,
-      )
-    view = discord.ui.View()
-    button_0 = discord.ui.Button(emoji=self.bot.emojis_dict["edit"], label="編集", custom_id=f"report_edit_reply", style=discord.ButtonStyle.primary, row=0)
-    button_1 = discord.ui.Button(emoji=self.bot.emojis_dict["send"], label="送信", custom_id=f"report_send", style=discord.ButtonStyle.red, row=0, disabled=True)
-    button_2 = discord.ui.Button(emoji=self.bot.emojis_dict["upload_file"], label="ファイル送信", custom_id=f"report_send_file", style=discord.ButtonStyle.green, row=1)
-    button_3 = discord.ui.Button(emoji=self.bot.emojis_dict["delete"], label="もう返信しない", custom_id=f"report_cancel", style=discord.ButtonStyle.gray, row=2)
-    view.add_item(button_0)
-    view.add_item(button_1)
-    view.add_item(button_2)
-    view.add_item(button_3)
+    view = ui.LayoutView()
 
-    # 返信用のbuttonを送信
+    container = ui.Container(accent_color=0xffe7ab)
+    container.add_item(ui.TextDisplay("## Report"))
+    container.add_item(ui.Separator())
+    container.add_item(ui.TextDisplay(f"## ユーザーからの返信\n{message.content}"))
+
+    files = []
+    if attachments := message.attachments:
+      container.add_item(ui.TextDisplay("## 添付ファイル"))
+      for attachment in attachments:
+        file_data = await attachment.to_file()
+        files.append(file_data)
+        container.add_item(ui.File(media=file_data))
+
+    view.add_item(container)
+
     try:
-      await cha.send(embed=embed, view=view)
-    except Exception as e:
-      e = f"\n[ERROR[3-3-05]]{datetime.datetime.now()}\n- USER_ID:{message.author.id}\n- GUILD_ID:{cha.guild.id}\n- CHANNEL_ID:{cha.id}\n{e}\n"
-      print(e)
-      embed = await error.generate(code="3-3-05")
-      await message.channel.send(embed=embed)
+      await report_thread.send(view=view, files=files)
+    except Exception:
+      msg = "スレッドにメッセージを送信できませんでした"
+      await error.send_error(msg, channel=message.channel)
       return
 
-    # リアクションを付ける
+
+    if panel_msg:
+      view = ui.LayoutView().from_message(panel_msg)
+
+    else:
+      view, _ = await create_reply_view("report")
+
+    try:
+      await report_thread.send(view=view)
+    except Exception:
+      await message.add_reaction("✖")
+      return
+
     await message.add_reaction("✅")
 
 
 
 async def setup(bot):
-  await bot.add_cog(ReplyToReply(bot))
+  await bot.add_cog(ReportUser(bot))
