@@ -15,7 +15,7 @@ def plot_graph():
   counts = []
 
   # 非同期でCSVファイルからデータを読み込み
-  with open('data/guild_counts.csv', mode='r') as csvfile:
+  with open('db/guild_counts.csv', mode='r') as csvfile:
     for line in csvfile:
       row = line.strip().split(',')
       dates.append(datetime.datetime.strptime(row[0], '%Y-%m-%d'))
