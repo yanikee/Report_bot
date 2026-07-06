@@ -33,5 +33,5 @@ select = [
 ]
 
 ignore = [
-    "E501", # Line too long (行が長すぎるエラーを無視)
+    "E501", # Line too long
 ]
