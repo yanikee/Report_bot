@@ -1,5 +1,4 @@
-from discord import Interaction, TextChannel, Thread, DMChannel, Embed
-
+from discord import DMChannel, Embed, Interaction, TextChannel, Thread
 
 
 async def send_error(msg: str, interaction: Interaction | None = None, channel: TextChannel | Thread | DMChannel | None = None, followup: bool = False):

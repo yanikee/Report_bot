@@ -1,10 +1,9 @@
+from discord import Embed, Interaction, Thread, app_commands
 from discord.ext import commands
-from discord import app_commands, Interaction, Thread, Embed
 
+from bot import ReportBot
 from modules import error
 from modules.db import DB
-from bot import ReportBot
-
 
 
 class Block(commands.Cog):

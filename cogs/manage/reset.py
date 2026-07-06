@@ -1,11 +1,9 @@
+from discord import ButtonStyle, Interaction, app_commands, ui
 from discord.ext import commands
-from discord import app_commands, ui, Interaction, ButtonStyle
 
-from modules.db import DB, GuildSettings
 from bot import ReportBot
-
+from modules.db import DB, GuildSettings
 from modules.types import GuildSettingsWrite
-
 
 
 class Reset(commands.Cog):

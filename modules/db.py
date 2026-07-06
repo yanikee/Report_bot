@@ -1,10 +1,10 @@
-from typing import Literal, cast, Any
+from typing import Any, Literal, cast
+
 from supabase import acreate_client
 
-from const import SUPABASE_URL, SUPABASE_KEY
-from .types import GuildSettings, Threads, GuildSettingsWrite
+from const import SUPABASE_KEY, SUPABASE_URL
 
-
+from .types import GuildSettings, GuildSettingsWrite, Threads
 
 
 class DB:

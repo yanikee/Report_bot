@@ -1,8 +1,7 @@
+from discord import DMChannel, Embed, Message, MessageType, components
 from discord.ext import commands
-from discord import components, Message, Embed, DMChannel, MessageType
 
 from bot import ReportBot
-
 
 
 class CheckReply(commands.Cog):

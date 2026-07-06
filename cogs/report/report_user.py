@@ -1,13 +1,12 @@
-from discord.ext import commands
-from discord import ui, components, Message, DMChannel, MessageType, TextChannel, Embed
-
 import re
 
-from modules.functions import user_cooldown, create_reply_view
-from modules.db import DB
-from modules import error
-from bot import ReportBot
+from discord import DMChannel, Embed, Message, MessageType, TextChannel, components, ui
+from discord.ext import commands
 
+from bot import ReportBot
+from modules import error
+from modules.db import DB
+from modules.functions import create_reply_view, user_cooldown
 
 
 class ReportUser(commands.Cog):

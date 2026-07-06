@@ -1,10 +1,8 @@
+from discord import Interaction, app_commands
 from discord.ext import commands
-from discord import app_commands, Interaction
 
-from modules import cogs
 from bot import ReportBot
-
-
+from modules import cogs
 
 cog_list = cogs.get_cogs()
 dev_cog_list = cogs.get_dev_cogs()

@@ -1,10 +1,18 @@
+from discord import (
+  ButtonStyle,
+  File,
+  Interaction,
+  SeparatorSpacing,
+  TextChannel,
+  TextStyle,
+  ui,
+)
 from discord.ext import commands
-from discord import ui, Interaction, TextStyle, File, ButtonStyle, TextChannel, SeparatorSpacing
 
+from bot import ReportBot
+from const import EMOJI_DICT
 from modules import error, functions
 from modules.db import DB
-from const import EMOJI_DICT
-from bot import ReportBot
 
 
 class PrivateTicket(commands.Cog):

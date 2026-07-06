@@ -1,11 +1,21 @@
+from discord import (
+  ButtonStyle,
+  ChannelType,
+  Embed,
+  Guild,
+  Interaction,
+  Role,
+  SeparatorSpacing,
+  TextChannel,
+  app_commands,
+  ui,
+)
 from discord.ext import commands
-from discord import app_commands, ui, Interaction, SeparatorSpacing, ChannelType, Guild, ButtonStyle, Embed, TextChannel, Role
 
+from bot import ReportBot
 from const import EMOJI_DICT
 from modules.db import DB, GuildSettings
 from modules.error import send_error
-from bot import ReportBot
-
 
 
 class Settings(commands.Cog):

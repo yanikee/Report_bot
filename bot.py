@@ -1,12 +1,11 @@
 import os
+
 import aiofiles
-from discord import Intents, CustomActivity, Status
+from colorama import Fore, Style, init
+from discord import CustomActivity, Intents, Status
 from discord.ext import commands
 
-from colorama import Fore, Style, init
 from modules.cogs import get_cogs
-
-
 
 init(autoreset=True)
 

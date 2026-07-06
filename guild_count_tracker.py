@@ -1,11 +1,10 @@
-import matplotlib.pyplot as plt
 import datetime
 import io
 import os
 
+import matplotlib.pyplot as plt
 import requests
 from dotenv import load_dotenv
-
 
 load_dotenv(override=True)
 

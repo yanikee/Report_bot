@@ -1,11 +1,17 @@
-from discord import app_commands, Interaction, TextChannel, CustomActivity, Status, Embed
+from datetime import datetime
+
+import aiofiles
+from discord import (
+  CustomActivity,
+  Embed,
+  Interaction,
+  Status,
+  TextChannel,
+  app_commands,
+)
 from discord.ext import commands
 
-from datetime import datetime
-import aiofiles
-
 from bot import ReportBot
-
 
 
 class BotUpdate(commands.GroupCog, group_name='update'):

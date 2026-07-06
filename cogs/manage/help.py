@@ -1,10 +1,8 @@
+from discord import ButtonStyle, Embed, Interaction, app_commands, ui
 from discord.ext import commands
-from discord import app_commands, ui, Interaction, Embed, ButtonStyle
 
-from modules import cogs
 from bot import ReportBot
-
-
+from modules import cogs
 
 dev_cog_list = cogs.get_dev_cogs()
 
