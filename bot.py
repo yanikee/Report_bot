@@ -35,7 +35,7 @@ class ReportBot(commands.Bot):
       return "None"
 
   async def setup_hook(self):
-    print(f"\n{Fore.MAGENTA}{Style.BRIGHT}=== Initializing RolePanelBot ===\n")
+    print(f"\n{Fore.MAGENTA}{Style.BRIGHT}=== Initializing ReportBot ===\n")
 
     # Cog読み込み
     for cog in get_cogs():
