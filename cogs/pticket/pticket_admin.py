@@ -29,6 +29,7 @@ class PticketAdmin(commands.Cog):
 
     if custom_id == "pticket_create_thread":
       guild_data = await self.db.get_guild_settings(guild.id)
+
       if not guild_data:
         msg = "サーバーデータが見つかりませんでした\n`/settings`を実行してください"
         await error.send_error(msg, interaction)
@@ -44,6 +45,7 @@ class PticketAdmin(commands.Cog):
         await error.send_error(msg, interaction)
         return
 
+      await self.db.upsert_guild_settings(guild_data)
 
       content, medias = get_reply_view_data(message)
       files = await get_files(medias)
