@@ -7,6 +7,7 @@ from discord import (
   Role,
   SeparatorSpacing,
   TextChannel,
+  TextStyle,
   app_commands,
   ui,
 )
@@ -165,15 +166,17 @@ class Settings(commands.Cog):
     return view
 
 
-  async def get_settings_page_4(self, interaction:Interaction, custom_id: str) -> ui.LayoutView | None:
+  async def get_settings_page_4(self, interaction: Interaction, custom_id: str) -> ui.LayoutView | None:
     guild = interaction.guild
     if not guild:
       return
 
     if "yes" in custom_id:
-      url = await self.send_ticket_button(interaction, guild)
-      msg = f"**Ticket作成ボタン**\n{url}"
+      ticket_button_channel_id = self.data[guild.id]["ticket_button_channel_id"]
+      await self.send_ticket_button(interaction, guild, ticket_button_channel_id)
+      msg = f"**Ticket作成ボタン**\n<#{ticket_button_channel_id}>"
     else:
+      await interaction.response.defer()
       msg = None
 
     container = ui.Container(accent_color=0xc8e1ff)
@@ -192,23 +195,16 @@ class Settings(commands.Cog):
     return view
 
 
-  async def send_ticket_button(self, interaction: Interaction, guild: Guild) -> str:
-    ticket_button_channel_id = self.data[guild.id]["ticket_button_channel_id"]
+  async def send_ticket_button(self, interaction: Interaction, guild: Guild, ticket_button_channel_id: int | None) -> None:
     ticket_button_channel = await self.get_fetch_channels(interaction, guild, ticket_button_channel_id)
 
     if not ticket_button_channel:
-      return ""
+      return
 
-    embed = Embed(
-      description="## 匿名Ticket\n匿名Ticketを作成します\nこのbotのDMを通じて匿名でサーバー管理者と会話することができます",
-      color=0xc8e1ff
-    )
+    modal = EditTicketButtonModal(self.bot, ticket_button_channel[0])
+    await interaction.response.send_modal(modal)
 
-    view = ui.View()
-    view.add_item(ui.Button(label="匿名Ticket", emoji=EMOJI_DICT["new_label"], custom_id="private_ticket", style=ButtonStyle.gray))
-
-    msg = await ticket_button_channel[0].send(embed=embed, view=view)
-    return msg.jump_url
+    return
 
 
   async def get_fetch_channels(self, interaction: Interaction, guild: Guild, channel_id: int | None) -> list[TextChannel] | None:
@@ -270,15 +266,16 @@ class Settings(commands.Cog):
 
     # page
     if "settings_page" in custom_id:
-      await interaction.response.defer()
-
       if custom_id == "settings_page_1":
+        await interaction.response.defer()
         view = self.get_settings_page_1()
 
       elif custom_id == "settings_page_2":
+        await interaction.response.defer()
         view = await self.get_settings_page_2(interaction)
 
       elif custom_id == "settings_page_3":
+        await interaction.response.defer()
         view = await self.get_settings_page_3(interaction)
 
       elif "settings_page_4" in custom_id:
@@ -324,6 +321,31 @@ class Settings(commands.Cog):
       await self.db.upsert_guild_settings(self.data[guild.id])
       return
 
+
+class EditTicketButtonModal(ui.Modal):
+  def __init__(self, bot: ReportBot, channel: TextChannel):
+    super().__init__(title="チケット編集モーダル")
+    self.bot = bot
+    self.channel = channel
+
+    self.text_input = ui.TextInput(
+      style=TextStyle.long,
+      default="## 匿名Ticket\n匿名Ticketを作成します\nこのbotのDMを通じて匿名でサーバー管理者と会話することができます"
+    )
+    self.add_item(ui.Label(text="チケットを開始するボタンのメッセージ", component=self.text_input))
+
+  async def on_submit(self, interaction: Interaction):
+    await interaction.response.defer()
+
+    embed = Embed(
+      description=self.text_input.value,
+      color=0xc8e1ff
+    )
+
+    view = ui.View()
+    view.add_item(ui.Button(label="匿名Ticket", emoji=EMOJI_DICT["new_label"], custom_id="private_ticket", style=ButtonStyle.gray))
+
+    await self.channel.send(embed=embed, view=view)
 
 
 async def setup(bot):
