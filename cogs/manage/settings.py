@@ -266,23 +266,21 @@ class Settings(commands.Cog):
 
     # page
     if "settings_page" in custom_id:
-      if custom_id == "settings_page_1":
+      # settings_page_4はモーダル呼び出しのためdeferなし
+      if custom_id in ["settings_page_1", "settings_page_2", "settings_page_3"]:
         await interaction.response.defer()
-        view = self.get_settings_page_1()
 
-      elif custom_id == "settings_page_2":
-        await interaction.response.defer()
-        view = await self.get_settings_page_2(interaction)
-
-      elif custom_id == "settings_page_3":
-        await interaction.response.defer()
-        view = await self.get_settings_page_3(interaction)
-
-      elif "settings_page_4" in custom_id:
-        view = await self.get_settings_page_4(interaction, custom_id)
-
-      else:
-        return
+      match custom_id:
+        case "settings_page_1":
+          view = self.get_settings_page_1()
+        case "settings_page_2":
+          view = await self.get_settings_page_2(interaction)
+        case "settings_page_3":
+          view = await self.get_settings_page_3(interaction)
+        case _ if "settings_page_4" in custom_id:
+          view = await self.get_settings_page_4(interaction, custom_id)
+        case _:
+          return
 
       await interaction.followup.edit_message(message_id, view=view)
       return
@@ -324,7 +322,7 @@ class Settings(commands.Cog):
 
 class EditTicketButtonModal(ui.Modal):
   def __init__(self, bot: ReportBot, channel: TextChannel):
-    super().__init__(title="チケット編集モーダル")
+    super().__init__(title="編集モーダル")
     self.bot = bot
     self.channel = channel
 
@@ -332,7 +330,7 @@ class EditTicketButtonModal(ui.Modal):
       style=TextStyle.long,
       default="## 匿名Ticket\n匿名Ticketを作成します\nこのbotのDMを通じて匿名でサーバー管理者と会話することができます"
     )
-    self.add_item(ui.Label(text="チケットを開始するボタンのメッセージ", component=self.text_input))
+    self.add_item(ui.Label(text="チケット開始ボタンに表示するメッセージ", component=self.text_input))
 
   async def on_submit(self, interaction: Interaction):
     await interaction.response.defer()
