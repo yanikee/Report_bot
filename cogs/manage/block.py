@@ -4,11 +4,12 @@ import discord
 
 from modules import error
 from modules.db import DB
+from bot import ReportBot
 
 
 
 class Block(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.db = DB()
 

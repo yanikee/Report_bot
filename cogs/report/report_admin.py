@@ -6,11 +6,12 @@ from modules import error
 from modules.db import DB
 from modules.functions import create_reply_view, get_reply_view_data, get_files
 from const import EMOJI_DICT
+from bot import ReportBot
 
 
 
 class ReportAdmin(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.db = DB()
 
@@ -189,7 +190,7 @@ class ReportAdmin(commands.Cog):
 
 
 class EditReplyModal(ui.Modal):
-  def __init__(self, bot: commands.Bot, msg: discord.Message):
+  def __init__(self, bot: ReportBot, msg: discord.Message):
     super().__init__(title=f'報告への返信')
     self.bot = bot
     self.msg = msg

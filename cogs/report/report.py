@@ -5,11 +5,12 @@ import discord
 from modules import error, functions
 from modules.db import DB
 from const import EMOJI_DICT
+from bot import ReportBot
 
 
 
 class Report(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.db = DB()
     self.user_cooldowns = {}
@@ -61,7 +62,7 @@ class Report(commands.Cog):
 
 
 class ReportButton(ui.LayoutView):
-  def __init__(self, bot: commands.Bot, interaction: discord.Interaction, message: discord.Message, timeout=30):
+  def __init__(self, bot: ReportBot, interaction: discord.Interaction, message: discord.Message, timeout=30):
     super().__init__(timeout=timeout)
     self.bot = bot
     self.db = DB()

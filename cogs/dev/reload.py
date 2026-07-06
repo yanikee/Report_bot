@@ -3,6 +3,7 @@ from discord import app_commands
 import discord
 
 from modules import cogs
+from bot import ReportBot
 
 
 
@@ -11,7 +12,7 @@ dev_cog_list = cogs.get_dev_cogs()
 cog_list += dev_cog_list
 
 class Reload(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
 
   @app_commands.command(name="reload",description="[開発者専用]cogをreloadします"  )

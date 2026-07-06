@@ -5,11 +5,12 @@ import discord
 from const import EMOJI_DICT
 from modules.db import DB, GuildSettings
 from modules.error import send_error
+from bot import ReportBot
 
 
 
 class Reset(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.db = DB()
     self.data: dict[int, GuildSettings] = {}

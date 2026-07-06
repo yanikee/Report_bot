@@ -1,11 +1,12 @@
 from discord.ext import commands
 import discord
 from discord import components
+from bot import ReportBot
 
 
 
 class CheckReply(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
 
   async def is_not_reply(self, message: discord.Message):

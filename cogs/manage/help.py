@@ -3,13 +3,14 @@ from discord import app_commands, ui
 import discord
 
 from modules import cogs
+from bot import ReportBot
 
 
 
 dev_cog_list = cogs.get_dev_cogs()
 
 class Help(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
 
   @app_commands.command(name="help", description='helpコマンドです')

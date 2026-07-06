@@ -7,11 +7,12 @@ import re
 from modules.functions import user_cooldown, create_reply_view, get_reply_view_data, get_files
 from modules.db import DB
 from modules import error
+from bot import ReportBot
 
 
 
 class PticketUser(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.db = DB()
     self.user_cooldowns = {}

@@ -4,11 +4,12 @@ import discord
 
 from datetime import datetime
 import aiofiles
+from bot import ReportBot
 
 
 
 class BotUpdate(commands.GroupCog, group_name='update'):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
 
   @app_commands.command(

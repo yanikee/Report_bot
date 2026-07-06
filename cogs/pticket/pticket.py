@@ -5,11 +5,11 @@ import discord
 from modules import error, functions
 from modules.db import DB
 from const import EMOJI_DICT
-
+from bot import ReportBot
 
 
 class PrivateTicket(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.db = DB()
     self.user_cooldowns = {}
@@ -58,7 +58,7 @@ class PrivateTicket(commands.Cog):
 
 
 class PrivateTicketModal(ui.Modal):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     super().__init__(title=f'匿名Ticket')
     self.bot = bot
     self.db = DB()
