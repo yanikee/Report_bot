@@ -1,6 +1,5 @@
 from discord.ext import commands
-from discord import app_commands, ui
-import discord
+from discord import app_commands, ui, Interaction, SeparatorSpacing, ChannelType, Guild, ButtonStyle, Embed, TextChannel, Role
 
 from const import EMOJI_DICT
 from modules.db import DB, GuildSettings
@@ -17,8 +16,8 @@ class Settings(commands.Cog):
 
 
   @app_commands.command(name="settings", description='設定を行います')
-  @discord.app_commands.guild_only()
-  async def settings(self, interaction: discord.Interaction):
+  @app_commands.guild_only()
+  async def settings(self, interaction: Interaction):
     guild = interaction.guild
     if not guild:
       return
@@ -42,7 +41,7 @@ class Settings(commands.Cog):
                                       "1. Ticket機能\n"
                                       "これらの設定を行います"))
     row = ui.ActionRow()
-    row.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id=f"settings_page_2", style=discord.ButtonStyle.gray))
+    row.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id=f"settings_page_2", style=ButtonStyle.gray))
     container.add_item(row)
 
     view = ui.LayoutView()
@@ -50,7 +49,7 @@ class Settings(commands.Cog):
     return view
 
 
-  async def get_settings_page_2(self, interaction: discord.Interaction) -> ui.LayoutView | None:
+  async def get_settings_page_2(self, interaction: Interaction) -> ui.LayoutView | None:
     guild = interaction.guild
     if not guild:
       return
@@ -58,14 +57,14 @@ class Settings(commands.Cog):
     container = ui.Container(accent_color=0xffe7ab)
     container.add_item(ui.TextDisplay("**settings (2/3)**\n## Report機能の設定"))
 
-    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+    container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
     container.add_item(ui.TextDisplay("**Reportを作成するチャンネル**"))
     row1 = ui.ActionRow()
     default_values = await self.get_fetch_channels(interaction, guild, self.data[guild.id]["report_channel_id"])
     row1.add_item(ui.ChannelSelect(
       placeholder="チャンネルを選択（任意）",
-      channel_types=[discord.ChannelType.text],
+      channel_types=[ChannelType.text],
       custom_id=f"settings_report_channel",
       min_values=0,
       default_values=default_values if default_values else []
@@ -83,11 +82,11 @@ class Settings(commands.Cog):
     ))
     container.add_item(row2)
 
-    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+    container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
     row3 = ui.ActionRow()
-    row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id=f"settings_page_1", style=discord.ButtonStyle.gray))
-    row3.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id=f"settings_page_3", style=discord.ButtonStyle.gray))
+    row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id=f"settings_page_1", style=ButtonStyle.gray))
+    row3.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id=f"settings_page_3", style=ButtonStyle.gray))
     container.add_item(row3)
 
     view = ui.LayoutView()
@@ -96,7 +95,7 @@ class Settings(commands.Cog):
     return view
 
 
-  async def get_settings_page_3(self, interaction: discord.Interaction) -> ui.LayoutView | None:
+  async def get_settings_page_3(self, interaction: Interaction) -> ui.LayoutView | None:
     guild = interaction.guild
     if not guild:
       return
@@ -104,14 +103,14 @@ class Settings(commands.Cog):
     container = ui.Container(accent_color=0xc8e1ff)
     container.add_item(ui.TextDisplay("**settings (3/3)**\n## Ticket機能の設定"))
 
-    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+    container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
     container.add_item(ui.TextDisplay("**Tiekctを作成するチャンネル**"))
     row1 = ui.ActionRow()
     default_values = await self.get_fetch_channels(interaction, guild, self.data[guild.id]["ticket_channel_id"])
     row1.add_item(ui.ChannelSelect(
       placeholder="チャンネルを選択（任意）",
-      channel_types=[discord.ChannelType.text],
+      channel_types=[ChannelType.text],
       custom_id=f"settings_ticket_channel",
       min_values=0,
       default_values=default_values if default_values else []
@@ -134,20 +133,20 @@ class Settings(commands.Cog):
     default_values = await self.get_fetch_channels(interaction, guild, self.data[guild.id]["ticket_button_channel_id"])
     row3.add_item(ui.ChannelSelect(
       placeholder="チャンネルを選択（任意）",
-      channel_types=[discord.ChannelType.text],
+      channel_types=[ChannelType.text],
       custom_id=f"settings_ticket_button_channel",
       min_values=0,
       default_values=default_values if default_values else []
     ))
     container.add_item(row3)
 
-    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+    container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
     row3 = ui.ActionRow()
-    row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id=f"settings_page_2", style=discord.ButtonStyle.gray, row=0))
-    row3.add_item(ui.Button(label="Ticket作成ボタンを設置せずに終了", emoji=EMOJI_DICT["check"], custom_id=f"settings_page_4_no", style=discord.ButtonStyle.gray, row=1))
+    row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id=f"settings_page_2", style=ButtonStyle.gray, row=0))
+    row3.add_item(ui.Button(label="Ticket作成ボタンを設置せずに終了", emoji=EMOJI_DICT["check"], custom_id=f"settings_page_4_no", style=ButtonStyle.gray, row=1))
     disable = not all([self.data[guild.id]["ticket_channel_id"], self.data[guild.id]["ticket_button_channel_id"]])
-    row3.add_item(ui.Button(label="Ticket作成ボタンを設置して終了", emoji=EMOJI_DICT["new_label"], custom_id=f"settings_page_4_yes", style=discord.ButtonStyle.gray, row=2, disabled=disable))
+    row3.add_item(ui.Button(label="Ticket作成ボタンを設置して終了", emoji=EMOJI_DICT["new_label"], custom_id=f"settings_page_4_yes", style=ButtonStyle.gray, row=2, disabled=disable))
     container.add_item(row3)
 
     view = ui.LayoutView()
@@ -156,7 +155,7 @@ class Settings(commands.Cog):
     return view
 
 
-  async def get_settings_page_4(self, interaction:discord.Interaction, custom_id: str) -> ui.LayoutView | None:
+  async def get_settings_page_4(self, interaction:Interaction, custom_id: str) -> ui.LayoutView | None:
     guild = interaction.guild
     if not guild:
       return
@@ -170,7 +169,7 @@ class Settings(commands.Cog):
     container = ui.Container(accent_color=0xc8e1ff)
     container.add_item(ui.TextDisplay("**settings**"))
 
-    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+    container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
     container.add_item(ui.TextDisplay("### 設定が完了しました"))
     if msg:
@@ -183,26 +182,26 @@ class Settings(commands.Cog):
     return view
 
 
-  async def send_ticket_button(self, interaction: discord.Interaction, guild: discord.Guild) -> str:
+  async def send_ticket_button(self, interaction: Interaction, guild: Guild) -> str:
     ticket_button_channel_id = self.data[guild.id]["ticket_button_channel_id"]
     ticket_button_channel = await self.get_fetch_channels(interaction, guild, ticket_button_channel_id)
 
     if not ticket_button_channel:
       return ""
 
-    embed = discord.Embed(
+    embed = Embed(
       description="## 匿名Ticket\n匿名Ticketを作成します\nこのbotのDMを通じて匿名でサーバー管理者と会話することができます",
       color=0xc8e1ff
     )
 
     view = ui.View()
-    view.add_item(ui.Button(label="匿名Ticket", emoji=EMOJI_DICT["new_label"], custom_id=f"private_ticket", style=discord.ButtonStyle.gray))
+    view.add_item(ui.Button(label="匿名Ticket", emoji=EMOJI_DICT["new_label"], custom_id=f"private_ticket", style=ButtonStyle.gray))
 
     msg = await ticket_button_channel[0].send(embed=embed, view=view)
     return msg.jump_url
 
 
-  async def get_fetch_channels(self, interaction: discord.Interaction, guild: discord.Guild, channel_id: int | None) -> list[discord.TextChannel] | None:
+  async def get_fetch_channels(self, interaction: Interaction, guild: Guild, channel_id: int | None) -> list[TextChannel] | None:
     if not channel_id:
       return []
 
@@ -215,7 +214,7 @@ class Settings(commands.Cog):
         await send_error(msg, interaction=interaction)
         return None
 
-    if not isinstance(channel, discord.TextChannel):
+    if not isinstance(channel, TextChannel):
       return None
 
     my_permission = channel.permissions_for(guild.me)
@@ -226,7 +225,7 @@ class Settings(commands.Cog):
 
     return [channel]
 
-  async def get_fetch_roles(self, guild: discord.Guild, role_id: int | None) -> list[discord.Role]:
+  async def get_fetch_roles(self, guild: Guild, role_id: int | None) -> list[Role]:
     if not role_id:
       return []
 
@@ -241,7 +240,7 @@ class Settings(commands.Cog):
 
 
   @commands.Cog.listener()
-  async def on_interaction(self, interaction: discord.Interaction):
+  async def on_interaction(self, interaction: Interaction):
     guild = interaction.guild
     if not guild:
       return

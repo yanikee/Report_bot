@@ -1,10 +1,7 @@
 from discord.ext import commands
-from discord import app_commands, ui
-import discord
+from discord import app_commands, ui, Interaction, ButtonStyle
 
-from const import EMOJI_DICT
 from modules.db import DB, GuildSettings
-from modules.error import send_error
 from bot import ReportBot
 
 
@@ -17,8 +14,8 @@ class Reset(commands.Cog):
 
 
   @app_commands.command(name="reset", description='サーバーの設定をリセットします。')
-  @discord.app_commands.guild_only()
-  async def reset(self, interaction: discord.Interaction):
+  @app_commands.guild_only()
+  async def reset(self, interaction: Interaction):
     guild = interaction.guild
     if not guild:
       return
@@ -39,8 +36,8 @@ class Reset(commands.Cog):
     container = ui.Container(accent_color=0xff0000)
     container.add_item(ui.TextDisplay("サーバーの設定をリセットします。よろしいですか？"))
     row = ui.ActionRow()
-    row.add_item(ui.Button(label="はい", custom_id=f"reset_yes", style=discord.ButtonStyle.red))
-    row.add_item(ui.Button(label="いいえ", custom_id=f"reset_no", style=discord.ButtonStyle.gray))
+    row.add_item(ui.Button(label="はい", custom_id=f"reset_yes", style=ButtonStyle.red))
+    row.add_item(ui.Button(label="いいえ", custom_id=f"reset_no", style=ButtonStyle.gray))
     container.add_item(row)
 
     view = ui.LayoutView()
@@ -49,7 +46,7 @@ class Reset(commands.Cog):
 
 
   @commands.Cog.listener()
-  async def on_interaction(self, interaction: discord.Interaction):
+  async def on_interaction(self, interaction: Interaction):
     guild = interaction.guild
     if not guild:
       return

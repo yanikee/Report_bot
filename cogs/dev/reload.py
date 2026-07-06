@@ -1,6 +1,5 @@
 from discord.ext import commands
-from discord import app_commands
-import discord
+from discord import app_commands, Interaction
 
 from modules import cogs
 from bot import ReportBot
@@ -18,7 +17,7 @@ class Reload(commands.Cog):
   @app_commands.command(name="reload",description="[開発者専用]cogをreloadします"  )
   @app_commands.choices(cog=[app_commands.Choice(name=x, value=x) for x in cog_list])
   @app_commands.describe(cog="reloadしたいCogを選択")
-  async def reload(self, interaction: discord.Interaction, cog: app_commands.Choice[str]):
+  async def reload(self, interaction: Interaction, cog: app_commands.Choice[str]):
     if not await self.bot.is_owner(interaction.user):
       return await interaction.response.send_message("このコマンドは開発者専用です", ephemeral=True)
 

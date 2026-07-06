@@ -1,6 +1,5 @@
 from discord.ext import commands
-from discord import app_commands, ui
-import discord
+from discord import app_commands, ui, Interaction, Embed, ButtonStyle
 
 from modules import cogs
 from bot import ReportBot
@@ -14,8 +13,8 @@ class Help(commands.Cog):
     self.bot = bot
 
   @app_commands.command(name="help", description='helpコマンドです')
-  async def help(self, interaction: discord.Interaction):
-    embed = discord.Embed(
+  async def help(self, interaction: Interaction):
+    embed = Embed(
       title="Help! (1/4)",
       description="このbotの2つの機能！\n\n"
                   "## 1. __Report機能__\n"
@@ -26,15 +25,15 @@ class Help(commands.Cog):
     )
 
     view = ui.View()
-    button_0 = ui.Button(label="まず始めに！（設定方法）", emoji="⚙️", custom_id=f"quickstart", style=discord.ButtonStyle.primary, row=0)
-    button_1 = ui.Button(label="使い方を知りたい！", emoji="✊", custom_id=f"how_to_use", style=discord.ButtonStyle.green, row=1)
-    button_2 = ui.Button(label="その他", emoji="💪", custom_id=f"others", style=discord.ButtonStyle.gray, row=1)
+    button_0 = ui.Button(label="まず始めに！（設定方法）", emoji="⚙️", custom_id=f"quickstart", style=ButtonStyle.primary, row=0)
+    button_1 = ui.Button(label="使い方を知りたい！", emoji="✊", custom_id=f"how_to_use", style=ButtonStyle.green, row=1)
+    button_2 = ui.Button(label="その他", emoji="💪", custom_id=f"others", style=ButtonStyle.gray, row=1)
     view.add_item(button_0)
     view.add_item(button_1)
     view.add_item(button_2)
 
     if await self.bot.is_owner(interaction.user):
-      button_3 = ui.Button(label="dev_mode", emoji="🥟", custom_id=f"dev_mode", style=discord.ButtonStyle.red, row=2)
+      button_3 = ui.Button(label="dev_mode", emoji="🥟", custom_id=f"dev_mode", style=ButtonStyle.red, row=2)
       view.add_item(button_3)
 
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -42,7 +41,7 @@ class Help(commands.Cog):
 
 
   @commands.Cog.listener()
-  async def on_interaction(self, interaction: discord.Interaction):
+  async def on_interaction(self, interaction: Interaction):
     if not interaction.data:
       return
 
@@ -66,7 +65,7 @@ class Help(commands.Cog):
 
 
     elif custom_id == "quickstart":
-      embed=discord.Embed(
+      embed = Embed(
         title="Help! (2/4)",
         description="## まず始めに！(設定方法)\n"
                     "__## `/settings` を実行__"
@@ -76,7 +75,7 @@ class Help(commands.Cog):
       await interaction.response.edit_message(embed=embed)
 
     elif custom_id == "how_to_use":
-      embed=discord.Embed(
+      embed = Embed(
         title="Help! (3/4)",
         description="# 使い方を知りたい！\n"
                     "## Report機能\n"
@@ -91,7 +90,7 @@ class Help(commands.Cog):
       await interaction.response.edit_message(embed=embed)
 
     elif custom_id == "others":
-      embed=discord.Embed(
+      embed = Embed(
         title="Help! (4/4)",
         description="## その他\n"
                     "## `/block <block_type: [選択]>`\n"

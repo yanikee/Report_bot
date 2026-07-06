@@ -1,6 +1,6 @@
 from discord.ext import commands
-import discord
-from discord import components
+from discord import components, Message, Embed, DMChannel, MessageType
+
 from bot import ReportBot
 
 
@@ -9,8 +9,8 @@ class CheckReply(commands.Cog):
   def __init__(self, bot: ReportBot):
     self.bot = bot
 
-  async def is_not_reply(self, message: discord.Message):
-    embed = discord.Embed(
+  async def is_not_reply(self, message: Message):
+    embed = Embed(
       description="# 返信できていません！\nbotからの匿名Report/匿名Ticketのメッセージに対して、「右クリック」→「返信」を行ってください！",
       color=0xff4b00,
     )
@@ -21,8 +21,8 @@ class CheckReply(commands.Cog):
     return
 
   @commands.Cog.listener()
-  async def on_message(self, message: discord.Message):
-    if not isinstance(message.channel, discord.DMChannel):
+  async def on_message(self, message: Message):
+    if not isinstance(message.channel, DMChannel):
       return
 
     if message.author.bot:
@@ -30,7 +30,7 @@ class CheckReply(commands.Cog):
 
     reference = message.reference
 
-    if message.type != discord.MessageType.reply or not reference:
+    if message.type != MessageType.reply or not reference:
       await self.is_not_reply(message)
       return
 

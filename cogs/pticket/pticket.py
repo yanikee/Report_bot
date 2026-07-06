@@ -1,6 +1,5 @@
 from discord.ext import commands
-from discord import ui
-import discord
+from discord import ui, Interaction, TextStyle, File, ButtonStyle, TextChannel, SeparatorSpacing
 
 from modules import error, functions
 from modules.db import DB
@@ -15,7 +14,7 @@ class PrivateTicket(commands.Cog):
     self.user_cooldowns = {}
 
   @commands.Cog.listener()
-  async def on_interaction(self, interaction: discord.Interaction):
+  async def on_interaction(self, interaction: Interaction):
     if not interaction.data:
       return
 
@@ -64,7 +63,7 @@ class PrivateTicketModal(ui.Modal):
     self.db = DB()
 
     self.pticket_input = ui.TextInput(
-      style=discord.TextStyle.long,
+      style=TextStyle.long,
       default=None,
       required=True,
     )
@@ -76,7 +75,7 @@ class PrivateTicketModal(ui.Modal):
     self.add_item(ui.Label(text="添付ファイル", component=self.file_input))
 
 
-  async def on_submit(self, interaction: discord.Interaction):
+  async def on_submit(self, interaction: Interaction):
     await interaction.response.defer(thinking=True, ephemeral=True)
 
     guild = interaction.guild
@@ -100,7 +99,7 @@ class PrivateTicketModal(ui.Modal):
         await error.send_error(msg, interaction, followup=True)
         return
 
-    if not isinstance(channel, discord.TextChannel):
+    if not isinstance(channel, TextChannel):
       return
 
 
@@ -116,7 +115,7 @@ class PrivateTicketModal(ui.Modal):
     container.add_item(ui.TextDisplay("## Ticket内容"))
     container.add_item(ui.TextDisplay(self.pticket_input.value, id=999))
 
-    files: list[discord.File] = []
+    files: list[File] = []
     if attachments := self.file_input.values:
       container.add_item(ui.TextDisplay("## 添付ファイル"))
       for attachment in attachments:
@@ -127,7 +126,7 @@ class PrivateTicketModal(ui.Modal):
     view.add_item(container)
 
     row = ui.ActionRow(id=900)
-    row.add_item(ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"pticket_create_thread", style=discord.ButtonStyle.gray))
+    row.add_item(ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"pticket_create_thread", style=ButtonStyle.gray))
     view.add_item(row)
 
     try:
@@ -163,7 +162,7 @@ class PrivateTicketModal(ui.Modal):
       for file in files:
         container.add_item(ui.File(media=file))
 
-    container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+    container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
     container.add_item(ui.TextDisplay(f"匿名Ticket | {guild.name}", id=998))
 

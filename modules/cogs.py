@@ -10,6 +10,7 @@ def get_cogs() -> list[str]:
     for file in files:
       if not file.startswith("_"):
         cog_list.append(f"cogs.{path}.{file[:-3]}")
+
   return cog_list
 
 def get_dev_cogs() -> list[str]:

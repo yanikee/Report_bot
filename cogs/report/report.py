@@ -1,6 +1,5 @@
 from discord.ext import commands
-from discord import app_commands, ui
-import discord
+from discord import app_commands, Message, ui, Interaction, TextStyle, ButtonStyle, TextChannel, SeparatorSpacing, User, Member, Embed
 
 from modules import error, functions
 from modules.db import DB
@@ -23,7 +22,7 @@ class Report(commands.Cog):
   async def cog_unload(self):
     self.bot.tree.remove_command(self.ctx_menu.name, type=self.ctx_menu.type)
 
-  async def report(self, interaction: discord.Interaction, message: discord.Message):
+  async def report(self, interaction: Interaction, message: Message):
     guild_id, channel_id = (interaction.guild_id, interaction.channel_id)
     if not guild_id or not channel_id:
       msg = "サーバーで実行してください"
@@ -62,7 +61,7 @@ class Report(commands.Cog):
 
 
 class ReportButton(ui.LayoutView):
-  def __init__(self, bot: ReportBot, interaction: discord.Interaction, message: discord.Message, timeout=30):
+  def __init__(self, bot: ReportBot, interaction: Interaction, message: Message, timeout=30):
     super().__init__(timeout=timeout)
     self.bot = bot
     self.db = DB()
@@ -74,8 +73,8 @@ class ReportButton(ui.LayoutView):
     container.add_item(ui.TextDisplay("**通常報告**：報告者名がサーバー管理者に伝わる\n**匿名報告**：報告者名は誰にも伝わらない"))
 
     row = ui.ActionRow()
-    self.button_0 = ui.Button(label='通常報告', emoji=EMOJI_DICT["person_alert"], custom_id='public_report', style=discord.ButtonStyle.gray)
-    self.button_1 = ui.Button(label='匿名報告', emoji=EMOJI_DICT["report"], custom_id='private_report', style=discord.ButtonStyle.gray)
+    self.button_0 = ui.Button(label='通常報告', emoji=EMOJI_DICT["person_alert"], custom_id='public_report', style=ButtonStyle.gray)
+    self.button_1 = ui.Button(label='匿名報告', emoji=EMOJI_DICT["report"], custom_id='private_report', style=ButtonStyle.gray)
     row.add_item(self.button_0)
     row.add_item(self.button_1)
 
@@ -84,7 +83,7 @@ class ReportButton(ui.LayoutView):
     self.add_item(container)
 
 
-  async def interaction_check(self, interaction: discord.Interaction):
+  async def interaction_check(self, interaction: Interaction):
     if not interaction.data:
       return
 
@@ -109,8 +108,8 @@ class ReportButton(ui.LayoutView):
       return
 
 
-  async def do_report(self, interaction: discord.Interaction, message: discord.Message, reporter: discord.User | discord.Member | None):
-    embed=discord.Embed(
+  async def do_report(self, interaction: Interaction, message: Message, reporter: User | Member | None):
+    embed = Embed(
       description=f"{message.content}\n{message.jump_url}",
       color=0xffe7ab,
     )
@@ -146,7 +145,7 @@ class ReportButton(ui.LayoutView):
         await error.send_error(msg, interaction)
         return
 
-    if not isinstance(channel, discord.TextChannel):
+    if not isinstance(channel, TextChannel):
       return
 
     report_menntion_role_id = guild_data["report_mention_role_id"]
@@ -175,7 +174,7 @@ class ReportButton(ui.LayoutView):
       )
 
       view = ui.View()
-      button_0 = ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"report_create_thread", style=discord.ButtonStyle.gray)
+      button_0 = ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"report_create_thread", style=ButtonStyle.gray)
       view.add_item(button_0)
 
       await report_msg.edit(view=view)
@@ -183,7 +182,7 @@ class ReportButton(ui.LayoutView):
 
 
 class ReportReasonModal(ui.Modal):
-  def __init__(self, interaction: discord.Interaction, reported_msg: discord.Message, report_msg: discord.Message, reporter: discord.User | discord.Member | None):
+  def __init__(self, interaction: Interaction, reported_msg: Message, report_msg: Message, reporter: User | Member | None):
     super().__init__(title='匿名Report')
     self.interaction = interaction
     self.reported_msg = reported_msg
@@ -192,18 +191,18 @@ class ReportReasonModal(ui.Modal):
 
     self.report_reason = ui.TextInput(
       label="Report理由",
-      style=discord.TextStyle.long,
+      style=TextStyle.long,
       required=True,
       row=0
     )
     self.add_item(self.report_reason)
 
-  async def on_submit(self, interaction: discord.Interaction):
+  async def on_submit(self, interaction: Interaction):
     guild = interaction.guild
     if not guild:
       return
 
-    embed=discord.Embed(
+    embed = Embed(
       title="報告の理由",
       description=self.report_reason.value,
       color=0xffe7ab,
@@ -252,7 +251,7 @@ class ReportReasonModal(ui.Modal):
       container.add_item(ui.TextDisplay(f"## Reportしたメッセージ\n　{self.reported_msg.jump_url}"))
       container.add_item(ui.TextDisplay(f"## Report理由\n{self.report_reason.value}"))
 
-      container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+      container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
       container.add_item(ui.TextDisplay(f"匿名Report | {guild.name}", id=998))
 
