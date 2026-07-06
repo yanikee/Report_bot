@@ -50,6 +50,8 @@ class Help(commands.Cog):
       return
 
     if custom_id == "dev_mode":
+      msg = ""
+
       for dev_cog in dev_cog_list:
         if dev_cog in self.bot.extensions:
           await self.bot.unload_extension(dev_cog)
@@ -59,6 +61,9 @@ class Help(commands.Cog):
           await self.bot.load_extension(dev_cog)
           print(f"ロード完了：{dev_cog}")
           msg = "ロード完了"
+
+      if msg == "":
+        return
 
       await interaction.response.send_message(msg, ephemeral=True)
       await self.bot.tree.sync()

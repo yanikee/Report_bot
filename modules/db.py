@@ -1,34 +1,9 @@
-from typing import TypedDict, Literal, cast, Any, NotRequired
+from typing import Literal, cast, Any
 from supabase import acreate_client
 
 from const import SUPABASE_URL, SUPABASE_KEY
+from .types import GuildSettings, Threads, GuildSettingsWrite
 
-
-
-class GuildSettings(TypedDict):
-  guild_id: int
-  report_channel_id: int | None
-  report_mention_role_id: int | None
-  report_count: int
-  ticket_channel_id: int | None
-  ticket_button_channel_id: int | None
-  ticket_mention_role_id: int | None
-  ticket_count: int
-  created_at: NotRequired[str]
-
-class Threads(TypedDict):
-  thread_id: int
-  guild_id: int
-  user_id: int
-  case_type: Literal["report", "ticket"]
-  is_blocked: bool
-  created_at: str
-
-class BlockedUsers(TypedDict):
-  id: int
-  guild_id: int
-  user_id: int
-  created_at: str
 
 
 
@@ -54,7 +29,7 @@ class DB:
     return cast(GuildSettings, res.data[0]) if res.data else None
 
     # 設定の保存/更新
-  async def upsert_guild_settings(self, data: GuildSettings):
+  async def upsert_guild_settings(self, data: GuildSettingsWrite | GuildSettings):
     supabase = await self.get_client()
 
     await supabase.table("guild_settings")\
@@ -62,7 +37,7 @@ class DB:
       .execute()
 
   async def create_guild_settings(self, guild_id: int) -> GuildSettings:
-    new_data: GuildSettings = {
+    new_data: GuildSettingsWrite = {
       "guild_id": guild_id,
       "report_channel_id": None,
       "report_mention_role_id": None,

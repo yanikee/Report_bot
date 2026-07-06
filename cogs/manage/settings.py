@@ -274,6 +274,9 @@ class Settings(commands.Cog):
       elif "settings_page_4" in custom_id:
         view = await self.get_settings_page_4(interaction, custom_id)
 
+      else:
+        return
+
       await interaction.followup.edit_message(message_id, view=view)
       return
 

@@ -83,17 +83,17 @@ class ReportButton(ui.LayoutView):
     self.add_item(container)
 
 
-  async def interaction_check(self, interaction: Interaction):
+  async def interaction_check(self, interaction: Interaction) -> bool:
     if not interaction.data:
-      return
+      return False
 
     custom_id = interaction.data.get("custom_id")
     if not custom_id:
-      return
+      return False
 
     if custom_id == "public_report":
       await self.do_report(interaction, self.message, reporter=interaction.user)
-      return
+      return True
 
     elif custom_id == "private_report":
       # 後ほどDMを使うため、初めにDMにメッセージを送れるか試す
@@ -102,10 +102,12 @@ class ReportButton(ui.LayoutView):
       except Exception:
         msg = "botからあなたのDMにメッセージを送信できませんでした\n設定を確認してください"
         await error.send_error(msg, interaction)
-        return
+        return False
 
       await self.do_report(interaction, self.message, reporter=None)
-      return
+      return True
+
+    return False
 
 
   async def do_report(self, interaction: Interaction, message: Message, reporter: User | Member | None):

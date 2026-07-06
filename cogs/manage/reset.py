@@ -4,6 +4,8 @@ from discord import app_commands, ui, Interaction, ButtonStyle
 from modules.db import DB, GuildSettings
 from bot import ReportBot
 
+from modules.types import GuildSettingsWrite
+
 
 
 class Reset(commands.Cog):
@@ -67,7 +69,7 @@ class Reset(commands.Cog):
     if "reset_yes" in custom_id:
       await interaction.response.defer()
 
-      data = {
+      data: GuildSettingsWrite = {
         "guild_id": guild.id,
         "report_channel_id": None,
         "report_mention_role_id": None,
