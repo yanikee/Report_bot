@@ -14,7 +14,7 @@
 https://yanikee.github.io/report_bot-docs2/
 
 ### bot導入リンク
-https://discord.com/oauth2/authorize?client_id=1237001692977827920&permissions=326417680448&integration_type=0&scope=bot
+https://com/oauth2/authorize?client_id=1237001692977827920&permissions=326417680448&integration_type=0&scope=bot
 
 ### サポートサーバー
-https://discord.gg/zU8FnMGHg3
+https://gg/zU8FnMGHg3

@@ -1,14 +1,13 @@
+from discord import Embed, Interaction, Thread, app_commands
 from discord.ext import commands
-from discord import app_commands
-import discord
 
+from bot import ReportBot
 from modules import error
 from modules.db import DB
 
 
-
 class Block(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.db = DB()
 
@@ -18,15 +17,15 @@ class Block(commands.Cog):
     app_commands.Choice(name="サーバー全体のブロック", value="server"),
   ])
   @app_commands.describe(block_type="ブロックの種類を選ぶ")
-  @discord.app_commands.guild_only()
-  async def block(self, interaction: discord.Interaction, block_type: app_commands.Choice[str]):
+  @app_commands.guild_only()
+  async def block(self, interaction: Interaction, block_type: app_commands.Choice[str]):
     guild, channel = (interaction.guild, interaction.channel)
     if not guild or not channel:
       msg = "サーバーのスレッド内で実行してください"
       await error.send_error(msg, interaction)
       return
 
-    if not isinstance(channel, discord.Thread):
+    if not isinstance(channel, Thread):
       msg = "サーバーのスレッド内で実行してください"
       await error.send_error(msg, interaction)
       return
@@ -57,7 +56,7 @@ class Block(commands.Cog):
       else:
         description="## スレッド内ブロック解除\nこのユーザーのスレッド内ブロックが解除されました"
 
-    embed = discord.Embed(
+    embed = Embed(
       description=description,
       color=color,
     )

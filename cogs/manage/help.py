@@ -1,20 +1,18 @@
+from discord import ButtonStyle, Embed, Interaction, app_commands, ui
 from discord.ext import commands
-from discord import app_commands, ui
-import discord
 
+from bot import ReportBot
 from modules import cogs
-
-
 
 dev_cog_list = cogs.get_dev_cogs()
 
 class Help(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
 
   @app_commands.command(name="help", description='helpコマンドです')
-  async def help(self, interaction: discord.Interaction):
-    embed = discord.Embed(
+  async def help(self, interaction: Interaction):
+    embed = Embed(
       title="Help! (1/4)",
       description="このbotの2つの機能！\n\n"
                   "## 1. __Report機能__\n"
@@ -25,15 +23,15 @@ class Help(commands.Cog):
     )
 
     view = ui.View()
-    button_0 = ui.Button(label="まず始めに！（設定方法）", emoji="⚙️", custom_id=f"quickstart", style=discord.ButtonStyle.primary, row=0)
-    button_1 = ui.Button(label="使い方を知りたい！", emoji="✊", custom_id=f"how_to_use", style=discord.ButtonStyle.green, row=1)
-    button_2 = ui.Button(label="その他", emoji="💪", custom_id=f"others", style=discord.ButtonStyle.gray, row=1)
+    button_0 = ui.Button(label="まず始めに！（設定方法）", emoji="⚙️", custom_id="quickstart", style=ButtonStyle.primary, row=0)
+    button_1 = ui.Button(label="使い方を知りたい！", emoji="✊", custom_id="how_to_use", style=ButtonStyle.green, row=1)
+    button_2 = ui.Button(label="その他", emoji="💪", custom_id="others", style=ButtonStyle.gray, row=1)
     view.add_item(button_0)
     view.add_item(button_1)
     view.add_item(button_2)
 
     if await self.bot.is_owner(interaction.user):
-      button_3 = ui.Button(label="dev_mode", emoji="🥟", custom_id=f"dev_mode", style=discord.ButtonStyle.red, row=2)
+      button_3 = ui.Button(label="dev_mode", emoji="🥟", custom_id="dev_mode", style=ButtonStyle.red, row=2)
       view.add_item(button_3)
 
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -41,15 +39,17 @@ class Help(commands.Cog):
 
 
   @commands.Cog.listener()
-  async def on_interaction(self, interaction: discord.Interaction):
+  async def on_interaction(self, interaction: Interaction):
     if not interaction.data:
       return
 
     custom_id = interaction.data.get("custom_id", "")
-    if not custom_id in ["dev_mode", "quickstart", "how_to_use", "others"]:
+    if custom_id not in ["dev_mode", "quickstart", "how_to_use", "others"]:
       return
 
     if custom_id == "dev_mode":
+      msg = ""
+
       for dev_cog in dev_cog_list:
         if dev_cog in self.bot.extensions:
           await self.bot.unload_extension(dev_cog)
@@ -60,12 +60,15 @@ class Help(commands.Cog):
           print(f"ロード完了：{dev_cog}")
           msg = "ロード完了"
 
+      if msg == "":
+        return
+
       await interaction.response.send_message(msg, ephemeral=True)
       await self.bot.tree.sync()
 
 
     elif custom_id == "quickstart":
-      embed=discord.Embed(
+      embed = Embed(
         title="Help! (2/4)",
         description="## まず始めに！(設定方法)\n"
                     "__## `/settings` を実行__"
@@ -75,7 +78,7 @@ class Help(commands.Cog):
       await interaction.response.edit_message(embed=embed)
 
     elif custom_id == "how_to_use":
-      embed=discord.Embed(
+      embed = Embed(
         title="Help! (3/4)",
         description="# 使い方を知りたい！\n"
                     "## Report機能\n"
@@ -90,7 +93,7 @@ class Help(commands.Cog):
       await interaction.response.edit_message(embed=embed)
 
     elif custom_id == "others":
-      embed=discord.Embed(
+      embed = Embed(
         title="Help! (4/4)",
         description="## その他\n"
                     "## `/block <block_type: [選択]>`\n"

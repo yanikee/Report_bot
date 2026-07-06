@@ -1,10 +1,9 @@
-import discord
+from discord import DMChannel, Embed, Interaction, TextChannel, Thread
 
 
-
-async def send_error(msg: str, interaction: discord.Interaction | None = None, channel: discord.TextChannel | discord.Thread | discord.DMChannel | None = None, followup: bool = False):
-  description = f"# ERROR\n{msg}\n\n- サポートサーバーは[こちら](https://discord.gg/djQHvM6PtE)"
-  embed=discord.Embed(
+async def send_error(msg: str, interaction: Interaction | None = None, channel: TextChannel | Thread | DMChannel | None = None, followup: bool = False):
+  description = f"# ERROR\n{msg}\n\n- サポートサーバーは[こちら](https://gg/djQHvM6PtE)"
+  embed = Embed(
     description=description,
     color=0xF2E700,
   )

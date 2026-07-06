@@ -1,11 +1,10 @@
-import matplotlib.pyplot as plt
 import datetime
 import io
 import os
 
+import matplotlib.pyplot as plt
 import requests
 from dotenv import load_dotenv
-
 
 load_dotenv(override=True)
 
@@ -15,7 +14,7 @@ def plot_graph():
   counts = []
 
   # 非同期でCSVファイルからデータを読み込み
-  with open('data/guild_counts.csv', mode='r') as csvfile:
+  with open('db/guild_counts.csv', mode='r') as csvfile:
     for line in csvfile:
       row = line.strip().split(',')
       dates.append(datetime.datetime.strptime(row[0], '%Y-%m-%d'))
@@ -51,9 +50,7 @@ def post(webhook_url):
     "favicon": ('guild_count_graph.png', img_buffer),
   }
 
-  res = requests.post(webhook_url, data=payload, files=files)
-  #print( res.status_code )
-  #print( json.dumps( json.loads(res.content), indent=4, ensure_ascii=False ) )
+  requests.post(webhook_url, data=payload, files=files)
 
 
 webhook_url = os.environ.get("webhook_url")

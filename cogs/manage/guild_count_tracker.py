@@ -1,15 +1,14 @@
-from discord.ext import commands
-from discord.ext import tasks
-
 import datetime
+
 import aiofiles
+from discord.ext import commands, tasks
 
-
+from bot import ReportBot
 
 JST = datetime.timezone(datetime.timedelta(hours=+9), "JST")
 
 class GuildCountRecorder(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.record_guild_count.start()
 
