@@ -44,6 +44,8 @@ class ReportAdmin(commands.Cog):
         await error.send_error(msg, interaction)
         return
 
+      await self.db.upsert_guild_settings(guild_data)
+
       await message.edit(view=None)
 
       view, files = await create_reply_view("report")
