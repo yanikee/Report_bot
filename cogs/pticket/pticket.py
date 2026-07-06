@@ -58,7 +58,7 @@ class PrivateTicket(commands.Cog):
 
 class PrivateTicketModal(ui.Modal):
   def __init__(self, bot: ReportBot):
-    super().__init__(title=f'匿名Ticket')
+    super().__init__(title='匿名Ticket')
     self.bot = bot
     self.db = DB()
 
@@ -126,7 +126,7 @@ class PrivateTicketModal(ui.Modal):
     view.add_item(container)
 
     row = ui.ActionRow(id=900)
-    row.add_item(ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"pticket_create_thread", style=ButtonStyle.gray))
+    row.add_item(ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id="pticket_create_thread", style=ButtonStyle.gray))
     view.add_item(row)
 
     try:

@@ -38,8 +38,8 @@ class Reset(commands.Cog):
     container = ui.Container(accent_color=0xff0000)
     container.add_item(ui.TextDisplay("サーバーの設定をリセットします。よろしいですか？"))
     row = ui.ActionRow()
-    row.add_item(ui.Button(label="はい", custom_id=f"reset_yes", style=ButtonStyle.red))
-    row.add_item(ui.Button(label="いいえ", custom_id=f"reset_no", style=ButtonStyle.gray))
+    row.add_item(ui.Button(label="はい", custom_id="reset_yes", style=ButtonStyle.red))
+    row.add_item(ui.Button(label="いいえ", custom_id="reset_no", style=ButtonStyle.gray))
     container.add_item(row)
 
     view = ui.LayoutView()

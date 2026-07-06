@@ -49,7 +49,7 @@ class PticketUser(commands.Cog):
         if isinstance(child, components.TextDisplay) and child.id == target_id
       ), "")
 
-      if not "匿名Ticket | " in content:
+      if "匿名Ticket | " not in content:
         return
 
       description = next((

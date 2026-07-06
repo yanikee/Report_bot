@@ -19,7 +19,7 @@ def user_cooldown(user_id: int, user_cooldowns: dict, rate: int=30):
       retry_minute = int(retry_after) // 60
       retry_second = int(retry_after) % 60
       embed = Embed(
-        title=f"Cooldown",
+        title="Cooldown",
         description=f"クールダウン中です\nあと{retry_minute}分{retry_second}秒お待ち下さい",
         color=0xF2E700,
       )
@@ -49,7 +49,7 @@ async def create_reply_view(
 
   files: list[File] = []
   if values:
-    container.add_item(ui.TextDisplay(f"## 添付ファイル"))
+    container.add_item(ui.TextDisplay("## 添付ファイル"))
     for value in values:
       if isinstance(value, Attachment):
         file = await value.to_file()

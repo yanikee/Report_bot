@@ -25,15 +25,15 @@ class Help(commands.Cog):
     )
 
     view = ui.View()
-    button_0 = ui.Button(label="まず始めに！（設定方法）", emoji="⚙️", custom_id=f"quickstart", style=ButtonStyle.primary, row=0)
-    button_1 = ui.Button(label="使い方を知りたい！", emoji="✊", custom_id=f"how_to_use", style=ButtonStyle.green, row=1)
-    button_2 = ui.Button(label="その他", emoji="💪", custom_id=f"others", style=ButtonStyle.gray, row=1)
+    button_0 = ui.Button(label="まず始めに！（設定方法）", emoji="⚙️", custom_id="quickstart", style=ButtonStyle.primary, row=0)
+    button_1 = ui.Button(label="使い方を知りたい！", emoji="✊", custom_id="how_to_use", style=ButtonStyle.green, row=1)
+    button_2 = ui.Button(label="その他", emoji="💪", custom_id="others", style=ButtonStyle.gray, row=1)
     view.add_item(button_0)
     view.add_item(button_1)
     view.add_item(button_2)
 
     if await self.bot.is_owner(interaction.user):
-      button_3 = ui.Button(label="dev_mode", emoji="🥟", custom_id=f"dev_mode", style=ButtonStyle.red, row=2)
+      button_3 = ui.Button(label="dev_mode", emoji="🥟", custom_id="dev_mode", style=ButtonStyle.red, row=2)
       view.add_item(button_3)
 
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -46,7 +46,7 @@ class Help(commands.Cog):
       return
 
     custom_id = interaction.data.get("custom_id", "")
-    if not custom_id in ["dev_mode", "quickstart", "how_to_use", "others"]:
+    if custom_id not in ["dev_mode", "quickstart", "how_to_use", "others"]:
       return
 
     if custom_id == "dev_mode":

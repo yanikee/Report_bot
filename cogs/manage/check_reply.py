@@ -57,7 +57,7 @@ class CheckReply(commands.Cog):
         if isinstance(child, components.TextDisplay) and child.id == target_id
       ), "")
 
-      if not "匿名Ticket | " in content and not "匿名Report | " in content:
+      if "匿名Ticket | " not in content and "匿名Report | " not in content:
         await self.is_not_reply(message)
         return
 

@@ -48,7 +48,7 @@ class ReportUser(commands.Cog):
         if isinstance(child, components.TextDisplay) and child.id == target_id
       ), "")
 
-      if not "匿名Report | " in content:
+      if "匿名Report | " not in content:
         return
 
       description = next((
@@ -76,7 +76,7 @@ class ReportUser(commands.Cog):
       else:
         if not description:
           return
-        if not "------------返信内容------------" in description:
+        if "------------返信内容------------" not in description:
           return
 
       report_msg_url = embed.url

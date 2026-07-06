@@ -15,7 +15,7 @@ def get_cogs() -> list[str]:
 
 def get_dev_cogs() -> list[str]:
   dev_cog_list = []
-  files = os.listdir(f"cogs/dev")
+  files = os.listdir("cogs/dev")
   for file in files:
     if not file.startswith("_"):
       dev_cog_list.append(f"cogs.dev.{file[:-3]}")

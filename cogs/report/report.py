@@ -176,7 +176,7 @@ class ReportButton(ui.LayoutView):
       )
 
       view = ui.View()
-      button_0 = ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id=f"report_create_thread", style=ButtonStyle.gray)
+      button_0 = ui.Button(label="返信", emoji=EMOJI_DICT["reply"], custom_id="report_create_thread", style=ButtonStyle.gray)
       view.add_item(button_0)
 
       await report_msg.edit(view=view)

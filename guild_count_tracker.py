@@ -51,9 +51,7 @@ def post(webhook_url):
     "favicon": ('guild_count_graph.png', img_buffer),
   }
 
-  res = requests.post(webhook_url, data=payload, files=files)
-  #print( res.status_code )
-  #print( json.dumps( json.loads(res.content), indent=4, ensure_ascii=False ) )
+  requests.post(webhook_url, data=payload, files=files)
 
 
 webhook_url = os.environ.get("webhook_url")

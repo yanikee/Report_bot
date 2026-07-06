@@ -41,7 +41,7 @@ class Settings(commands.Cog):
                                       "1. Ticket機能\n"
                                       "これらの設定を行います"))
     row = ui.ActionRow()
-    row.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id=f"settings_page_2", style=ButtonStyle.gray))
+    row.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id="settings_page_2", style=ButtonStyle.gray))
     container.add_item(row)
 
     view = ui.LayoutView()
@@ -65,7 +65,7 @@ class Settings(commands.Cog):
     row1.add_item(ui.ChannelSelect(
       placeholder="チャンネルを選択（任意）",
       channel_types=[ChannelType.text],
-      custom_id=f"settings_report_channel",
+      custom_id="settings_report_channel",
       min_values=0,
       default_values=default_values if default_values else []
     ))
@@ -76,7 +76,7 @@ class Settings(commands.Cog):
     default_values = await self.get_fetch_roles(guild, self.data[guild.id]["report_mention_role_id"])
     row2.add_item(ui.RoleSelect(
       placeholder="ロールを選択（任意）",
-      custom_id=f"settings_report_mention_role",
+      custom_id="settings_report_mention_role",
       min_values=0,
       default_values=default_values
     ))
@@ -85,8 +85,8 @@ class Settings(commands.Cog):
     container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
     row3 = ui.ActionRow()
-    row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id=f"settings_page_1", style=ButtonStyle.gray))
-    row3.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id=f"settings_page_3", style=ButtonStyle.gray))
+    row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id="settings_page_1", style=ButtonStyle.gray))
+    row3.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id="settings_page_3", style=ButtonStyle.gray))
     container.add_item(row3)
 
     view = ui.LayoutView()
@@ -111,7 +111,7 @@ class Settings(commands.Cog):
     row1.add_item(ui.ChannelSelect(
       placeholder="チャンネルを選択（任意）",
       channel_types=[ChannelType.text],
-      custom_id=f"settings_ticket_channel",
+      custom_id="settings_ticket_channel",
       min_values=0,
       default_values=default_values if default_values else []
     ))
@@ -122,7 +122,7 @@ class Settings(commands.Cog):
     default_values = await self.get_fetch_roles(guild, self.data[guild.id]["ticket_mention_role_id"])
     row2.add_item(ui.RoleSelect(
       placeholder="ロールを選択（任意）",
-      custom_id=f"settings_ticket_mention_role",
+      custom_id="settings_ticket_mention_role",
       min_values=0,
       default_values=default_values
     ))
@@ -134,7 +134,7 @@ class Settings(commands.Cog):
     row3.add_item(ui.ChannelSelect(
       placeholder="チャンネルを選択（任意）",
       channel_types=[ChannelType.text],
-      custom_id=f"settings_ticket_button_channel",
+      custom_id="settings_ticket_button_channel",
       min_values=0,
       default_values=default_values if default_values else []
     ))
@@ -143,10 +143,10 @@ class Settings(commands.Cog):
     container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
     row3 = ui.ActionRow()
-    row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id=f"settings_page_2", style=ButtonStyle.gray, row=0))
-    row3.add_item(ui.Button(label="Ticket作成ボタンを設置せずに終了", emoji=EMOJI_DICT["check"], custom_id=f"settings_page_4_no", style=ButtonStyle.gray, row=1))
+    row3.add_item(ui.Button(label="戻る", emoji=EMOJI_DICT["arrow_back"], custom_id="settings_page_2", style=ButtonStyle.gray, row=0))
+    row3.add_item(ui.Button(label="Ticket作成ボタンを設置せずに終了", emoji=EMOJI_DICT["check"], custom_id="settings_page_4_no", style=ButtonStyle.gray, row=1))
     disable = not all([self.data[guild.id]["ticket_channel_id"], self.data[guild.id]["ticket_button_channel_id"]])
-    row3.add_item(ui.Button(label="Ticket作成ボタンを設置して終了", emoji=EMOJI_DICT["new_label"], custom_id=f"settings_page_4_yes", style=ButtonStyle.gray, row=2, disabled=disable))
+    row3.add_item(ui.Button(label="Ticket作成ボタンを設置して終了", emoji=EMOJI_DICT["new_label"], custom_id="settings_page_4_yes", style=ButtonStyle.gray, row=2, disabled=disable))
     container.add_item(row3)
 
     view = ui.LayoutView()
@@ -195,7 +195,7 @@ class Settings(commands.Cog):
     )
 
     view = ui.View()
-    view.add_item(ui.Button(label="匿名Ticket", emoji=EMOJI_DICT["new_label"], custom_id=f"private_ticket", style=ButtonStyle.gray))
+    view.add_item(ui.Button(label="匿名Ticket", emoji=EMOJI_DICT["new_label"], custom_id="private_ticket", style=ButtonStyle.gray))
 
     msg = await ticket_button_channel[0].send(embed=embed, view=view)
     return msg.jump_url
@@ -296,7 +296,7 @@ class Settings(commands.Cog):
       if "channel" in custom_id:
         channel = await self.get_fetch_channels(interaction, guild, value)
 
-        if not channel is None:
+        if channel is not None:
           if "button_channel" in custom_id:
             self.data[guild.id]["ticket_button_channel_id"] = value
 

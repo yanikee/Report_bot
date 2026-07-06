@@ -12,3 +12,8 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "supabase>=2.30.0",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.20",
+]

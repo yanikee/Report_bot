@@ -150,7 +150,7 @@ class ReportAdmin(commands.Cog):
       container.add_item(ui.TextDisplay(content))
 
       if files:
-        container.add_item(ui.TextDisplay(f"## 添付ファイル"))
+        container.add_item(ui.TextDisplay("## 添付ファイル"))
         for file in files:
           container.add_item(ui.File(file))
 
@@ -192,7 +192,7 @@ class ReportAdmin(commands.Cog):
 
 class EditReplyModal(ui.Modal):
   def __init__(self, bot: ReportBot, msg: Message):
-    super().__init__(title=f'報告への返信')
+    super().__init__(title='報告への返信')
     self.bot = bot
     self.msg = msg
 
