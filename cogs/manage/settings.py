@@ -47,16 +47,15 @@ class Settings(commands.Cog):
 
   def get_settings_page_1(self) -> ui.LayoutView:
     container = ui.Container(accent_color=0xffe7ab)
-    container.add_item(ui.TextDisplay("**settings (1/3)**\n"
-                                      "1. Report機能\n"
-                                      "1. Ticket機能\n"
-                                      "これらの設定を行います"))
+    container.add_item(ui.TextDisplay("**settings (1/3)**\n1. Report機能の設定\n2. Ticket機能の設定"))
+
     row = ui.ActionRow()
     row.add_item(ui.Button(label="次へ", emoji=EMOJI_DICT["arrow_forward"], custom_id="settings_page_2", style=ButtonStyle.gray))
     container.add_item(row)
 
     view = ui.LayoutView()
     view.add_item(container)
+
     return view
 
 
