@@ -1,21 +1,30 @@
+from discord import (
+  ButtonStyle,
+  File,
+  Interaction,
+  Message,
+  SeparatorSpacing,
+  TextStyle,
+  Thread,
+  UnfurledMediaItem,
+  ui,
+)
 from discord.ext import commands
-from discord import ui
-import discord
 
+from bot import ReportBot
+from const import EMOJI_DICT
 from modules import error
 from modules.db import DB
-from modules.functions import create_reply_view, get_reply_view_data, get_files
-from const import EMOJI_DICT
-
+from modules.functions import create_reply_view, get_files, get_reply_view_data
 
 
 class ReportAdmin(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.db = DB()
 
   @commands.Cog.listener()
-  async def on_interaction(self, interaction: discord.Interaction):
+  async def on_interaction(self, interaction: Interaction):
     data = interaction.data
     if not data:
       return
@@ -42,6 +51,8 @@ class ReportAdmin(commands.Cog):
         msg = "スレッドを作成できませんでした\n権限を確認してください"
         await error.send_error(msg, interaction)
         return
+
+      await self.db.upsert_guild_settings(guild_data)
 
       await message.edit(view=None)
 
@@ -76,7 +87,7 @@ class ReportAdmin(commands.Cog):
     elif custom_id == "report_send":
       await interaction.response.defer(thinking=True)
 
-      if not isinstance(channel, discord.Thread):
+      if not isinstance(channel, Thread):
         return
 
       guild_data = await self.db.get_guild_settings(guild.id)
@@ -117,7 +128,7 @@ class ReportAdmin(commands.Cog):
       section.add_item(ui.TextDisplay("- __**このメッセージに返信**__すると管理者に届きます"))
       container.add_item(section)
 
-      container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+      container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
       container.add_item(ui.TextDisplay("## 返信内容"))
       container.add_item(ui.TextDisplay(content))
@@ -127,7 +138,7 @@ class ReportAdmin(commands.Cog):
         for file in files:
           container.add_item(ui.File(file))
 
-      container.add_item(ui.Separator(spacing=discord.SeparatorSpacing.large))
+      container.add_item(ui.Separator(spacing=SeparatorSpacing.large))
 
       container.add_item(ui.TextDisplay(f"匿名Report | {guild.name}", id=998))
 
@@ -148,7 +159,7 @@ class ReportAdmin(commands.Cog):
       container.add_item(ui.TextDisplay(content))
 
       if files:
-        container.add_item(ui.TextDisplay(f"## 添付ファイル"))
+        container.add_item(ui.TextDisplay("## 添付ファイル"))
         for file in files:
           container.add_item(ui.File(file))
 
@@ -162,7 +173,7 @@ class ReportAdmin(commands.Cog):
       await channel.add_user(interaction.user)
 
       view = ui.View()
-      button = ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
+      button = ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=ButtonStyle.gray)
       view.add_item(button)
       await channel.send(view=view)
       return
@@ -176,26 +187,26 @@ class ReportAdmin(commands.Cog):
 
 
     elif custom_id == "report_cancel":
-      if not isinstance(channel, discord.Thread):
+      if not isinstance(channel, Thread):
         return
 
       await message.delete()
 
       view = ui.View()
-      button = ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=discord.ButtonStyle.gray)
+      button = ui.Button(label="追加で返信", emoji=EMOJI_DICT["add"], custom_id="report_add_reply", style=ButtonStyle.gray)
       view.add_item(button)
       await channel.send(view=view)
       return
 
 
 class EditReplyModal(ui.Modal):
-  def __init__(self, bot: commands.Bot, msg: discord.Message):
-    super().__init__(title=f'報告への返信')
+  def __init__(self, bot: ReportBot, msg: Message):
+    super().__init__(title='報告への返信')
     self.bot = bot
     self.msg = msg
 
     default: str | None = None
-    self.files: list[discord.UnfurledMediaItem] = []
+    self.files: list[UnfurledMediaItem] = []
 
     content, self.files = get_reply_view_data(msg)
 
@@ -207,7 +218,7 @@ class EditReplyModal(ui.Modal):
       self.disabled = False
 
     self.reply_input = ui.TextInput(
-      style=discord.TextStyle.long,
+      style=TextStyle.long,
       default=default,
       required=False,
     )
@@ -219,13 +230,13 @@ class EditReplyModal(ui.Modal):
     self.add_item(ui.Label(text="添付ファイル", component=self.file_input))
 
 
-  async def on_submit(self, interaction: discord.Interaction):
+  async def on_submit(self, interaction: Interaction):
     if len(self.files + self.file_input.values) > 3:
       msg = "一度に添付できるファイルは3件までです"
       await error.send_error(msg, interaction)
       return
 
-    existing_files: list[discord.File] = []
+    existing_files: list[File] = []
     if self.files:
       await interaction.response.defer(thinking=True, ephemeral=True)
 

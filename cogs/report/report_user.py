@@ -1,24 +1,23 @@
-from discord.ext import commands
-from discord import ui, components
-import discord
-
 import re
 
-from modules.functions import user_cooldown, create_reply_view
-from modules.db import DB
-from modules import error
+from discord import DMChannel, Embed, Message, MessageType, TextChannel, components, ui
+from discord.ext import commands
 
+from bot import ReportBot
+from modules import error
+from modules.db import DB
+from modules.functions import create_reply_view, user_cooldown
 
 
 class ReportUser(commands.Cog):
-  def __init__(self, bot: commands.Bot):
+  def __init__(self, bot: ReportBot):
     self.bot = bot
     self.db = DB()
     self.user_cooldowns = {}
 
   @commands.Cog.listener()
-  async def on_message(self, message: discord.Message):
-    if not isinstance(message.channel, discord.DMChannel):
+  async def on_message(self, message: Message):
+    if not isinstance(message.channel, DMChannel):
       return
 
     if message.author.bot:
@@ -26,7 +25,7 @@ class ReportUser(commands.Cog):
 
     reference = message.reference
 
-    if message.type != discord.MessageType.reply or not reference:
+    if message.type != MessageType.reply or not reference:
       return
 
     msg = reference.cached_message
@@ -48,7 +47,7 @@ class ReportUser(commands.Cog):
         if isinstance(child, components.TextDisplay) and child.id == target_id
       ), "")
 
-      if not "匿名Report | " in content:
+      if "匿名Report | " not in content:
         return
 
       description = next((
@@ -76,7 +75,7 @@ class ReportUser(commands.Cog):
       else:
         if not description:
           return
-        if not "------------返信内容------------" in description:
+        if "------------返信内容------------" not in description:
           return
 
       report_msg_url = embed.url
@@ -133,7 +132,7 @@ class ReportUser(commands.Cog):
         await error.send_error(msg, channel=message.channel)
         return
 
-    if not isinstance(channel, discord.TextChannel):
+    if not isinstance(channel, TextChannel):
       return
 
     try:
@@ -160,7 +159,7 @@ class ReportUser(commands.Cog):
 
     # アーカイブされていた場合、親チャンネルに通知
     if report_thread.archived:
-      embed=discord.Embed(
+      embed = Embed(
         title="お知らせ",
         description=f"{report_thread.mention}に、新しい返信が届きました",
         color=0xff33ff,
