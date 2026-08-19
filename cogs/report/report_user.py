@@ -155,6 +155,8 @@ class ReportUser(commands.Cog):
         await error.send_error(msg, channel=message.channel)
         return
 
+      await self.db.upsert_guild_settings(guild_data)
+
     await report_msg.edit(view=None)
 
     # アーカイブされていた場合、親チャンネルに通知

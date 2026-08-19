@@ -157,6 +157,8 @@ class PticketUser(commands.Cog):
         await error.send_error(msg, channel=message.channel)
         return
 
+      await self.db.upsert_guild_settings(guild_data)
+
       content, medias = get_reply_view_data(pticket_msg)
       files = await get_files(medias)
 
