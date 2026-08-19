@@ -20,6 +20,13 @@ EMOJI_DICT = {
 }
 
 TOKEN = os.environ.get("TOKEN", "")
+if not TOKEN:
+  raise RuntimeError("環境変数 TOKEN が設定されていません")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+if not SUPABASE_URL:
+  raise RuntimeError("環境変数 SUPABASE_URL が設定されていません")
+
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+if not SUPABASE_KEY:
+  raise RuntimeError("環境変数 SUPABASE_KEY が設定されていません")

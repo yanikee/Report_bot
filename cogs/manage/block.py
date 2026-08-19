@@ -1,15 +1,14 @@
-from discord import Embed, Interaction, Thread, app_commands
+from discord import Embed, Interaction, Member, Thread, app_commands
 from discord.ext import commands
 
 from bot import ReportBot
 from modules import error
-from modules.db import DB
 
 
 class Block(commands.Cog):
   def __init__(self, bot: ReportBot):
     self.bot = bot
-    self.db = DB()
+    self.db = bot.db
 
   @app_commands.command(name="block", description='匿名Report, 匿名Ticketをブロック/ブロック解除します')
   @app_commands.choices(block_type=[
@@ -18,10 +17,16 @@ class Block(commands.Cog):
   ])
   @app_commands.describe(block_type="ブロックの種類を選ぶ")
   @app_commands.guild_only()
+  @app_commands.default_permissions(manage_guild=True)
   async def block(self, interaction: Interaction, block_type: app_commands.Choice[str]):
     guild, channel = (interaction.guild, interaction.channel)
     if not guild or not channel:
       msg = "サーバーのスレッド内で実行してください"
+      await error.send_error(msg, interaction)
+      return
+
+    if not isinstance(interaction.user, Member) or not interaction.user.guild_permissions.manage_guild:
+      msg = "このコマンドの実行には`サーバー管理`権限が必要です"
       await error.send_error(msg, interaction)
       return
 

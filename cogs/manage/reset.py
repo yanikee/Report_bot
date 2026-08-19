@@ -1,23 +1,30 @@
-from discord import ButtonStyle, Interaction, app_commands, ui
+from discord import ButtonStyle, Interaction, Member, app_commands, ui
 from discord.ext import commands
 
 from bot import ReportBot
-from modules.db import DB, GuildSettings
+from modules.db import GuildSettings
+from modules.error import send_error
 from modules.types import GuildSettingsWrite
 
 
 class Reset(commands.Cog):
   def __init__(self, bot: ReportBot):
     self.bot = bot
-    self.db = DB()
-    self.data: dict[int, GuildSettings] = {}
+    self.db = bot.db
+    self.data: dict[tuple[int, int], GuildSettings] = {}
 
 
   @app_commands.command(name="reset", description='サーバーの設定をリセットします。')
   @app_commands.guild_only()
+  @app_commands.default_permissions(manage_guild=True)
   async def reset(self, interaction: Interaction):
     guild = interaction.guild
     if not guild:
+      return
+
+    if not isinstance(interaction.user, Member) or not interaction.user.guild_permissions.manage_guild:
+      msg = "このコマンドの実行には`サーバー管理`権限が必要です"
+      await send_error(msg, interaction)
       return
 
     await interaction.response.defer(ephemeral=True)
@@ -26,7 +33,7 @@ class Reset(commands.Cog):
     if not guild_data:
       guild_data = await self.db.create_guild_settings(guild.id)
 
-    self.data[guild.id] = guild_data
+    self.data[(guild.id, interaction.user.id)] = guild_data
 
     view = self.confirm_reset()
     await interaction.followup.send(view=view)
@@ -61,6 +68,13 @@ class Reset(commands.Cog):
 
     custom_id = interaction.data.get("custom_id")
     if not custom_id:
+      return
+
+    if ("reset_yes" in custom_id or "reset_no" in custom_id) and (
+      not isinstance(interaction.user, Member) or not interaction.user.guild_permissions.manage_guild
+    ):
+      msg = "このコマンドの実行には`サーバー管理`権限が必要です"
+      await send_error(msg, interaction)
       return
 
     # page

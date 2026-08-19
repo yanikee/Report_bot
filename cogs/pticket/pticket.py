@@ -3,7 +3,6 @@ from discord import (
   File,
   Interaction,
   SeparatorSpacing,
-  TextChannel,
   TextStyle,
   ui,
 )
@@ -12,13 +11,12 @@ from discord.ext import commands
 from bot import ReportBot
 from const import EMOJI_DICT
 from modules import error, functions
-from modules.db import DB
 
 
 class PrivateTicket(commands.Cog):
   def __init__(self, bot: ReportBot):
     self.bot = bot
-    self.db = DB()
+    self.db = bot.db
     self.user_cooldowns = {}
 
   @commands.Cog.listener()
@@ -43,10 +41,7 @@ class PrivateTicket(commands.Cog):
       await error.send_error(msg, interaction)
       return
 
-    is_guild_blocked = await self.db.is_guild_blocked(guild_id, interaction.user.id)
-    if is_guild_blocked:
-      msg = "サーバーブロックされています"
-      await error.send_error(msg, interaction)
+    if await functions.raise_on_guild_block(self.db, guild_id, interaction.user.id, interaction=interaction):
       return
 
     ticket_channel_id = guild_data["ticket_channel_id"]
@@ -55,7 +50,7 @@ class PrivateTicket(commands.Cog):
       await error.send_error(msg, interaction)
       return
 
-    embed, self.user_cooldowns = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
+    embed = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
     if embed:
       await interaction.response.send_message(embed=embed, ephemeral=True)
       return
@@ -68,7 +63,7 @@ class PrivateTicketModal(ui.Modal):
   def __init__(self, bot: ReportBot):
     super().__init__(title='匿名Ticket')
     self.bot = bot
-    self.db = DB()
+    self.db = bot.db
 
     self.pticket_input = ui.TextInput(
       style=TextStyle.long,
@@ -98,16 +93,10 @@ class PrivateTicketModal(ui.Modal):
     if not ticket_channel_id:
       return
 
-    channel = self.bot.get_channel(ticket_channel_id)
+    channel = await functions.resolve_text_channel(self.bot, ticket_channel_id)
     if not channel:
-      try:
-        channel = await self.bot.fetch_channel(ticket_channel_id)
-      except Exception:
-        msg = "チャンネルを取得できませんでした\n`/settings`を再実行してください"
-        await error.send_error(msg, interaction, followup=True)
-        return
-
-    if not isinstance(channel, TextChannel):
+      msg = "チャンネルを取得できませんでした\n`/settings`を再実行してください"
+      await error.send_error(msg, interaction, followup=True)
       return
 
 
@@ -139,7 +128,8 @@ class PrivateTicketModal(ui.Modal):
 
     try:
       pticket_msg = await channel.send(view=view, files=files)
-    except Exception:
+    except Exception as e:
+      self.bot.log(f"匿名Ticket送信に失敗: {e}", "ERROR")
       msg = "匿名Ticketを送信できませんでした"
       await error.send_error(msg, interaction, followup=True)
       return

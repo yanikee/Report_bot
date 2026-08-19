@@ -5,7 +5,6 @@ from discord import (
   Member,
   Message,
   SeparatorSpacing,
-  TextChannel,
   TextStyle,
   User,
   app_commands,
@@ -16,13 +15,12 @@ from discord.ext import commands
 from bot import ReportBot
 from const import EMOJI_DICT
 from modules import error, functions
-from modules.db import DB
 
 
 class Report(commands.Cog):
   def __init__(self, bot: ReportBot):
     self.bot = bot
-    self.db = DB()
+    self.db = bot.db
     self.user_cooldowns = {}
     self.ctx_menu = app_commands.ContextMenu(
       name="!【サーバー管理者に報告】",
@@ -48,10 +46,7 @@ class Report(commands.Cog):
       await error.send_error(msg, interaction, followup=True)
       return
 
-    is_guild_blocked = await self.db.is_guild_blocked(guild_id, interaction.user.id)
-    if is_guild_blocked:
-      msg = "サーバーブロックされています"
-      await error.send_error(msg, interaction, followup=True)
+    if await functions.raise_on_guild_block(self.db, guild_id, interaction.user.id, interaction=interaction, followup=True):
       return
 
     report_channel_id = guild_data["report_channel_id"]
@@ -60,7 +55,7 @@ class Report(commands.Cog):
       await error.send_error(msg, interaction, followup=True)
       return
 
-    embed, self.user_cooldowns = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
+    embed = functions.user_cooldown(interaction.user.id, self.user_cooldowns)
     if embed:
       await interaction.followup.send(embed=embed)
       return
@@ -75,7 +70,7 @@ class ReportButton(ui.LayoutView):
   def __init__(self, bot: ReportBot, interaction: Interaction, message: Message, timeout=30):
     super().__init__(timeout=timeout)
     self.bot = bot
-    self.db = DB()
+    self.db = bot.db
     self.interaction = interaction
     self.message = message
 
@@ -149,16 +144,10 @@ class ReportButton(ui.LayoutView):
     if not report_channel_id:
       return
 
-    channel = self.bot.get_channel(report_channel_id)
+    channel = await functions.resolve_text_channel(self.bot, report_channel_id)
     if not channel:
-      try:
-        channel = await self.bot.fetch_channel(report_channel_id)
-      except Exception:
-        msg = "チャンネルを取得できませんでした\n`/settings`を再実行してください"
-        await error.send_error(msg, interaction)
-        return
-
-    if not isinstance(channel, TextChannel):
+      msg = "チャンネルを取得できませんでした\n`/settings`を再実行してください"
+      await error.send_error(msg, interaction)
       return
 
     report_menntion_role_id = guild_data["report_mention_role_id"]
@@ -170,7 +159,8 @@ class ReportButton(ui.LayoutView):
 
     try:
       report_msg = await channel.send(mention_msg, embeds=message.embeds)
-    except Exception:
+    except Exception as e:
+      self.bot.log(f"レポート送信に失敗: {e}", "ERROR")
       msg = "レポートを送信できませんでした\n`/settings`を再実行してください"
       await error.send_error(msg, interaction)
       return

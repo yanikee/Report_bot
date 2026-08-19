@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import io
 from typing import Literal
@@ -6,10 +7,15 @@ import aiohttp
 from discord import (
   Attachment,
   ButtonStyle,
+  Client,
+  DMChannel,
   Embed,
   File,
+  Interaction,
   Message,
   SelectOption,
+  TextChannel,
+  Thread,
   UnfurledMediaItem,
   components,
   ui,
@@ -17,8 +23,11 @@ from discord import (
 
 from const import EMOJI_DICT
 
+from .db import DB
+from .error import send_error
 
-def user_cooldown(user_id: int, user_cooldowns: dict, rate: int=30):
+
+def user_cooldown(user_id: int, user_cooldowns: dict, rate: int=30) -> Embed | None:
   current_time = int(datetime.datetime.now().timestamp())
 
   if str(user_id) in user_cooldowns:
@@ -27,18 +36,42 @@ def user_cooldown(user_id: int, user_cooldowns: dict, rate: int=30):
     if retry_after > 0:
       retry_minute = int(retry_after) // 60
       retry_second = int(retry_after) % 60
-      embed = Embed(
+      return Embed(
         title="Cooldown",
         description=f"クールダウン中です\nあと{retry_minute}分{retry_second}秒お待ち下さい",
         color=0xF2E700,
       )
-      return embed, user_cooldowns
 
     else:
       user_cooldowns.pop(str(user_id))
 
   user_cooldowns[str(user_id)] = current_time + rate
-  return None, user_cooldowns
+  return None
+
+
+async def resolve_text_channel(bot: Client, channel_id: int) -> TextChannel | None:
+  channel = bot.get_channel(channel_id)
+  if not channel:
+    try:
+      channel = await bot.fetch_channel(channel_id)
+    except Exception:
+      return None
+
+  return channel if isinstance(channel, TextChannel) else None
+
+
+async def raise_on_guild_block(
+  db: DB, guild_id: int, user_id: int,
+  interaction: Interaction | None = None,
+  channel: TextChannel | Thread | DMChannel | None = None,
+  followup: bool = False,
+) -> bool:
+  is_blocked = await db.is_guild_blocked(guild_id, user_id)
+  if is_blocked:
+    msg = "サーバーブロックされています"
+    await send_error(msg, interaction=interaction, channel=channel, followup=followup)
+
+  return is_blocked
 
 
 
@@ -112,12 +145,11 @@ def get_reply_view_data(msg: Message) -> tuple[str, list[UnfurledMediaItem]]:
 
 
 async def get_files(medias: list[UnfurledMediaItem]) -> list[File]:
-  files: list[File] = []
-  async with aiohttp.ClientSession() as session:
-    for item in medias:
-      async with session.get(item.url) as resp:
-        data = await resp.read()
-        filename = item.url.split('/')[-1].split('?')[0]
-        files.append(File(io.BytesIO(data), filename=filename))
+  async def fetch(session: aiohttp.ClientSession, item: UnfurledMediaItem) -> File:
+    async with session.get(item.url) as resp:
+      data = await resp.read()
+      filename = item.url.split('/')[-1].split('?')[0]
+      return File(io.BytesIO(data), filename=filename)
 
-  return files
+  async with aiohttp.ClientSession() as session:
+    return list(await asyncio.gather(*(fetch(session, item) for item in medias)))

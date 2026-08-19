@@ -6,6 +6,7 @@ from discord import CustomActivity, Intents, Status
 from discord.ext import commands
 
 from modules.cogs import get_cogs
+from modules.db import DB
 
 init(autoreset=True)
 
@@ -15,6 +16,7 @@ class ReportBot(commands.Bot):
     intents.messages = True
     intents.guilds = True
     super().__init__(command_prefix="!!!!!!!!!!!!!!!!!!!!!!!!!//!", intents=intents)
+    self.db = DB()
 
 
   def log(self, message: str, level: str = "INFO"):
