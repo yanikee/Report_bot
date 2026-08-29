@@ -22,6 +22,7 @@ class Reload(commands.Cog):
     try:
       await self.bot.reload_extension(cog.value)
     except Exception as e:
+      self.bot.log(f"{cog.value}の再読み込みに失敗: {e}", "ERROR")
       await interaction.response.send_message(f"- {cog.value}の再読み込みに失敗\n - 理由：{e}", ephemeral=True)
       return
 

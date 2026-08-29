@@ -14,14 +14,13 @@ from discord.ext import commands
 from bot import ReportBot
 from const import EMOJI_DICT
 from modules import error
-from modules.db import DB
 from modules.functions import create_reply_view, get_files, get_reply_view_data
 
 
 class PticketAdmin(commands.Cog):
   def __init__(self, bot: ReportBot):
     self.bot = bot
-    self.db = DB()
+    self.db = bot.db
 
   @commands.Cog.listener()
   async def on_interaction(self, interaction: Interaction):
@@ -48,7 +47,8 @@ class PticketAdmin(commands.Cog):
 
       try:
         thread = await message.create_thread(name=name)
-      except Exception:
+      except Exception as e:
+        self.bot.log(f"スレッド作成に失敗: {e}", "ERROR")
         msg = "スレッドを作成できませんでした\n権限を確認してください"
         await error.send_error(msg, interaction)
         return
@@ -129,7 +129,8 @@ class PticketAdmin(commands.Cog):
       if not user:
         try:
           user = await self.bot.fetch_user(user_id)
-        except Exception:
+        except Exception as e:
+          self.bot.log(f"ユーザー取得に失敗: {e}", "ERROR")
           msg = "ユーザーデータが取得できませんでした"
           await error.send_error(msg, interaction, followup=True)
           return
@@ -167,7 +168,8 @@ class PticketAdmin(commands.Cog):
 
       try:
         await user.send(view=view, files=files)
-      except Exception:
+      except Exception as e:
+        self.bot.log(f"DM送信に失敗: {e}", "ERROR")
         msg = "送信できませんでした"
         await error.send_error(msg, channel=channel)
         return

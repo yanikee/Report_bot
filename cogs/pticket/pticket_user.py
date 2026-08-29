@@ -1,15 +1,16 @@
 import re
 
-from discord import DMChannel, Embed, Message, MessageType, TextChannel, components, ui
+from discord import DMChannel, Embed, Message, MessageType, components, ui
 from discord.ext import commands
 
 from bot import ReportBot
 from modules import error
-from modules.db import DB
 from modules.functions import (
   create_reply_view,
   get_files,
   get_reply_view_data,
+  raise_on_guild_block,
+  resolve_text_channel,
   user_cooldown,
 )
 
@@ -17,7 +18,7 @@ from modules.functions import (
 class PticketUser(commands.Cog):
   def __init__(self, bot: ReportBot):
     self.bot = bot
-    self.db = DB()
+    self.db = bot.db
     self.user_cooldowns = {}
 
   @commands.Cog.listener()
@@ -107,10 +108,12 @@ class PticketUser(commands.Cog):
 
     user_id = message.author.id
 
-    is_guild_blocked = await self.db.is_guild_blocked(guild_id, user_id)
-    if is_guild_blocked:
-      msg = "サーバーブロックされています"
+    if thread_data["user_id"] != user_id:
+      msg = "この操作は行えません"
       await error.send_error(msg, channel=message.channel)
+      return
+
+    if await raise_on_guild_block(self.db, guild_id, user_id, channel=message.channel):
       return
 
     if thread_data["is_blocked"]:
@@ -118,28 +121,23 @@ class PticketUser(commands.Cog):
       await error.send_error(msg, channel=message.channel)
       return
 
-    embed, self.user_cooldowns = user_cooldown(user_id, self.user_cooldowns)
+    embed = user_cooldown(user_id, self.user_cooldowns)
     if embed:
       await message.add_reaction("❌")
       embed.set_footer(text="このメッセージは15秒後に削除されます")
       await message.reply(embed=embed, delete_after=15)
       return
 
-    channel = self.bot.get_channel(channel_id)
+    channel = await resolve_text_channel(self.bot, channel_id)
     if not channel:
-      try:
-        channel = await self.bot.fetch_channel(channel_id)
-      except Exception:
-        msg = "チャンネルが存在しませんでした\nサーバーで`/settings`を実行してください"
-        await error.send_error(msg, channel=message.channel)
-        return
-
-    if not isinstance(channel, TextChannel):
+      msg = "チャンネルが存在しませんでした\nサーバーで`/settings`を実行してください"
+      await error.send_error(msg, channel=message.channel)
       return
 
     try:
       pticket_msg = await channel.fetch_message(message_id)
-    except Exception:
+    except Exception as e:
+      self.bot.log(f"メッセージ取得に失敗: {e}", "ERROR")
       msg = "スレッドが取得できませんでした"
       await error.send_error(msg, channel=message.channel)
       return
@@ -152,7 +150,8 @@ class PticketUser(commands.Cog):
 
       try:
         pticket_thread = await pticket_msg.create_thread(name=name)
-      except Exception:
+      except Exception as e:
+        self.bot.log(f"スレッド作成に失敗: {e}", "ERROR")
         msg = "スレッドが作成できませんでした"
         await error.send_error(msg, channel=message.channel)
         return
@@ -218,7 +217,8 @@ class PticketUser(commands.Cog):
 
     try:
       await pticket_thread.send(view=view, files=files)
-    except Exception:
+    except Exception as e:
+      self.bot.log(f"スレッドへの送信に失敗: {e}", "ERROR")
       msg = "スレッドにメッセージを送信できませんでした"
       await error.send_error(msg, channel=message.channel)
       return
@@ -232,7 +232,8 @@ class PticketUser(commands.Cog):
 
     try:
       await pticket_thread.send(view=view)
-    except Exception:
+    except Exception as e:
+      self.bot.log(f"スレッドへの送信に失敗: {e}", "ERROR")
       await message.add_reaction("✖")
       return
 
